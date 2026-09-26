@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catálogo - C2C Streetwear</title>
+</head>
+<body>
+    <h1>Catálogo de Streetwear</h1>
+
+    <!-- Zona de filtros -->
+    <form method="GET" action="">
+        <label>Categoría (Obligatorio):</label>
+        <select name="categoria" required>
+            <option value="">Seleccione...</option>
+            {% for cat in categorias %}
+                <option value="{{ cat.id_categoria }}">{{ cat.nombre }}</option>
+            {% endfor %}
+        </select>
+
+        <label>Precio Mínimo (Obligatorio):</label>
+        <input type="number" name="precio_min" required>
+
+        <label>Precio Máximo (Obligatorio):</label>
+        <input type="number" name="precio_max" required>
+
+        <button type="submit">Buscar</button>
+    </form>
+
+    <hr>
+
+    <!-- Mensajes del sistema -->
+    {% if mensaje %}
+        <p style="color: red;"><strong>{{ mensaje }}</strong></p>
+    {% endif %}
+
+    <!-- Zona de resultados -->
+    <div style="display: flex; gap: 20px;">
+        {% for articulo in articulos %}
+            <div style="border: 1px solid black; padding: 10px;">
+                <h3>{{ articulo.nombre }}</h3>
+                <p>Precio: ${{ articulo.precio }}</p>
+                <p>Talla: {{ articulo.talla }} | Estado: {{ articulo.estado_conservacion }}</p>
+            </div>
+        {% endfor %}
+    </div>
+
+</body>
+</html>
