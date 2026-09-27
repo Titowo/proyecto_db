@@ -4,7 +4,7 @@ from .models import Articulo, Categoria
 def catalogo(request):
     categorias = Categoria.objects.all()
     #solo mostrar articulos disponibles
-    articulos = Articulo.objects.filter(estado_publicacion='Activo')
+    articulos = Articulo.objects.filter(estado_publicacion='Activo').select_related('id_categoria')
 
     # captura de parametros GET
     categoria_id = request.GET.get('categoria')
@@ -18,18 +18,34 @@ def catalogo(request):
 
     # aplicar filtros obligatorios
     if categoria_id and precio_min and precio_max:
-        articulos = articulos.filter(
-            id_categoria=categoria_id,
-            precio__gte=precio_min,
-            precio__lte=precio_max
-        )
+        # validamos que categoria y precios sean valores numericos validos
+        # antes de tocar la base de datos, para cubrir la rama "Parametros
+        # Invalidos" del diagrama de secuencia (Figura 2), no solo la de
+        # parametros faltantes
+        try:
+            categoria_id = int(categoria_id)
+            precio_min = float(precio_min)
+            precio_max = float(precio_max)
+            parametros_validos = precio_min <= precio_max
+        except (ValueError, TypeError):
+            parametros_validos = False
 
-        #sumar filtros alternativos
-        if talla: articulos = articulos.filter(talla=tall)
-        if marca: articulos = articulos.filter(marca=marca)
-        if estado: articulos = articulos.filter(estado_conservacion=estado)
+        if parametros_validos:
+            articulos = articulos.filter(
+                id_categoria=categoria_id,
+                precio__gte=precio_min,
+                precio__lte=precio_max
+            )
 
-        mensaje = None if articulos.exists() else "Sin resultados, aplia tus filtros"
+            #sumar filtros alternativos
+            if talla: articulos = articulos.filter(talla=talla)
+            if marca: articulos = articulos.filter(marca=marca)
+            if estado: articulos = articulos.filter(estado_conservacion=estado)
+
+            mensaje = None if articulos.exists() else "Sin resultados, amplia tus filtros"
+        else:
+            articulos = Articulo.objects.none()
+            mensaje = "Parametros invalidos: revisa categoria y rango de precio"
     else:
         articulos = Articulo.objects.none()
         mensaje = "Define categoria y precio para buscar"
@@ -39,5 +55,4 @@ def catalogo(request):
         'categorias': categorias,
         'mensaje': mensaje
     }
-    return render(request, 'core/catalogo.html', context) 
-
+    return render(request, 'core/catalogo.html', context)
