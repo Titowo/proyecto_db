@@ -3,7 +3,7 @@
 SELECT a.nombre, a.precio, c.nombre AS categoria 
 FROM core_articulo a
 JOIN core_categoria c ON a.id_categoria = c.id_categoria
-WHERE a.estado_publicacion = 'Activo';
+WHERE a.estado_publicacion = 'Disponible';
 
 -- 2. Filtros Dinámicos (Búsqueda)
 -- Simula la consulta de tu view: Filtra por categoría, rango de precio y talla.
@@ -12,7 +12,7 @@ FROM core_articulo
 WHERE id_categoria = 1 
   AND precio BETWEEN 30000 AND 80000 
   AND talla = 'M' 
-  AND estado_publicacion = 'Activo';
+  AND estado_publicacion = 'Disponible';
 
 -- 3. Insert (Registro de Usuario)
 -- Crea un nuevo usuario en la plataforma.
@@ -22,7 +22,7 @@ VALUES ('Juan', 'Perez', 'juan.perez@email.com', 'hash_contrasena', CURRENT_TIME
 -- 4. Insert (Publicación de Artículo)
 -- El usuario (id=1) publica unas zapatillas en la categoría (id=2).
 INSERT INTO core_articulo (nombre, descripcion, precio, stock, talla, marca, estado_conservacion, estado_publicacion, fecha_publicacion, id_usuario, id_categoria) 
-VALUES ('Nike Dunk Low', 'Zapatillas sin uso', 120000, 1, 'US 10', 'Nike', 'Nuevo', 'Activo', CURRENT_TIMESTAMP, 1, 2);
+VALUES ('Nike Dunk Low', 'Zapatillas sin uso', 120000, 1, 'US 10', 'Nike', 'Nuevo', 'Disponible', CURRENT_TIMESTAMP, 1, 2);
 
 -- 5. Update (Gestión de Perfil)
 -- Un usuario actualiza su número de teléfono.
@@ -46,7 +46,7 @@ WHERE id_usuario = 1 AND id_articulo = 1;
 -- Cuenta cuántos artículos disponibles hay por cada categoría.
 SELECT c.nombre AS categoria, COUNT(a.id_articulo) AS total_articulos
 FROM core_categoria c
-LEFT JOIN core_articulo a ON c.id_categoria = a.id_categoria AND a.estado_publicacion = 'Activo'
+LEFT JOIN core_articulo a ON c.id_categoria = a.id_categoria AND a.estado_publicacion = 'Disponible'
 GROUP BY c.id_categoria, c.nombre;
 
 -- 9. Historial de Ventas (Multi-JOIN)
