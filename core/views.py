@@ -24,8 +24,8 @@ def catalogo(request):
         # parametros faltantes
         try:
             categoria_id = int(categoria_id)
-            precio_min = float(precio_min)
-            precio_max = float(precio_max)
+            precio_min = Decimal(precio_min)
+            precio_max = Decimal(precio_max)
             parametros_validos = precio_min <= precio_max
         except (ValueError, TypeError):
             parametros_validos = False
