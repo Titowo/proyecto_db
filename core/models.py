@@ -34,7 +34,7 @@ class Articulo(models.Model):
     talla = models.CharField(max_length=20)                             # talla del art iculo
     marca = models.CharField(max_length=50)                             # marca del art iculo
     estado_conservacion = models.CharField(max_length=20)               # estado: Nuevo o Usado
-    estado_publicacion = models.CharField(max_length=20)                # estado: Activo, Vendido, Pausado, etc
+    estado_publicacion = models.CharField(max_length=20, default='Disponible')                # estado: Disponible, Vendido, Pausado, etc
     fecha_publicacion = models.DateTimeField(default=timezone.now)      # fecha en que se publico el articulo
     
     # Claves foraneas con regla de borrado RESTRICT segun el modelo relacional
