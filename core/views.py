@@ -1,10 +1,11 @@
+from decimal import Decimal, InvalidOperation
 from django.shortcuts import render
 from .models import Articulo, Categoria
 
 def catalogo(request):
     categorias = Categoria.objects.all()
     #solo mostrar articulos disponibles
-    articulos = Articulo.objects.filter(estado_publicacion='Activo').select_related('id_categoria')
+    articulos = Articulo.objects.filter(estado_publicacion='Disponible').select_related('id_categoria')
 
     # captura de parametros GET
     categoria_id = request.GET.get('categoria')
@@ -27,7 +28,7 @@ def catalogo(request):
             precio_min = Decimal(precio_min)
             precio_max = Decimal(precio_max)
             parametros_validos = precio_min <= precio_max
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, InvalidOperation):
             parametros_validos = False
 
         if parametros_validos:
