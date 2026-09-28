@@ -148,6 +148,37 @@
                 display: none; /* Oculta filtros en móvil para este mockup */
             }
         }
+
+
+        .search-bar {
+            display: flex;
+            flex: 1;
+            max-width: 500px; /* Ancho máximo de la barra */
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            overflow: hidden;
+            background-color: #fff;
+        }
+        .search-bar input {
+            flex: 1;
+            padding: 10px 15px;
+            border: none;
+            outline: none;
+            font-size: 14px;
+            background: transparent;
+        }
+        .search-bar button {
+            background-color: var(--primary-color);
+            color: #fff;
+            border: none;
+            padding: 0 15px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        .search-bar button:hover {
+            background-color: #333;
+        }
     </style>
 </head>
 <body>
@@ -155,7 +186,13 @@
     <!-- Encabezado -->
     <header>
         <div class="logo">C2C Streetwear</div>
+        <!-- Búsqueda -->
+        <form class="search-bar" action="#" method="GET">
+            <input type="text" placeholder="Buscar zapatillas, polerones, marcas..." name="q">
+            <button type="submit">Buscar</button>
+        </form>
         <div class="nav-links">
+            <a href="#" style="margin-right: 30px; font-weight: bold;">Carrito</a>
             <a href="#" style="margin-right: 20px; font-weight: bold;">Catálogo</a>
             <a href="#" class="btn-login">Iniciar Sesión</a>
         </div>
@@ -166,6 +203,29 @@
         
         <!-- Sidebar de Filtros (Visual) -->
         <aside class="sidebar">
+            <div class="price-range-container">
+              <h3>Rango de Precio</h3>
+              <div class="price-inputs">
+                <div class="field">
+                  <span>Mínimo</span>
+                  <input type="number" id="input-min" value="100" min="0" max="1000">
+                </div>
+                <div class="separator">-</div>
+                <div class="field">
+                <span>Máximo</span>
+                <input type="number" id="input-max" value="800" min="0" max="1000">
+              </div>
+            </div>
+  
+            <div class="slider-track">
+              <div id="range-color" class="progress"></div>
+            </div>
+  
+            <div class="range-input">
+              <input type="range" id="range-min" min="0" max="1000" value="100" step="10">
+              <input type="range" id="range-max" min="0" max="1000" value="800" step="10">
+            </div>
+            </div>
             <div class="filter-group">
                 <h3>Categoría</h3>
                 <label><input type="checkbox"> Zapatillas</label>
