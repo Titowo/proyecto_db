@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catálogo - C2C Streetwear</title>
+    <style>
+        /* Estilos Base */
+        :root {
+            --primary-color: #111;
+            --bg-color: #f8f8f8;
+            --border-color: #e0e0e0;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--primary-color);
+        }
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        /* Navegación (Header) */
+        header {
+            background-color: #fff;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--primary-color);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: 900;
+            letter-spacing: -1px;
+            text-transform: uppercase;
+        }
+        .nav-links gap {
+            display: flex;
+            gap: 20px;
+        }
+        .btn-login {
+            background-color: var(--primary-color);
+            color: #fff;
+            padding: 8px 16px;
+            font-weight: bold;
+            border-radius: 4px;
+        }
+
+        /* Layout Principal (Filtros + Catálogo) */
+        .container {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 30px;
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        /* Barra Lateral (Filtros estáticos) */
+        .sidebar {
+            background: #fff;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            height: fit-content;
+        }
+        .filter-group {
+            margin-bottom: 20px;
+        }
+        .filter-group h3 {
+            font-size: 16px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+        .filter-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        /* Cuadrícula de Productos (Grid) */
+        .catalog-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        /* Tarjeta de Producto */
+        .product-card {
+            background: #fff;
+            border: 1px solid var(--border-color);
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+        }
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .product-image {
+            width: 100%;
+            height: 250px;
+            background-color: #eaeaea;
+            object-fit: cover;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .product-info {
+            padding: 15px;
+        }
+        .brand {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+        .product-title {
+            font-size: 16px;
+            margin: 5px 0 10px;
+            font-weight: 600;
+        }
+        .product-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            color: #444;
+            margin-bottom: 10px;
+        }
+        .price {
+            font-size: 18px;
+            font-weight: 800;
+        }
+
+        /* Responsividad (Móviles) */
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            .sidebar {
+                display: none; /* Oculta filtros en móvil para este mockup */
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Encabezado -->
+    <header>
+        <div class="logo">C2C Streetwear</div>
+        <div class="nav-links">
+            <a href="#" style="margin-right: 20px; font-weight: bold;">Catálogo</a>
+            <a href="#" class="btn-login">Iniciar Sesión</a>
+        </div>
+    </header>
+
+    <!-- Contenedor Principal -->
+    <div class="container">
+        
+        <!-- Sidebar de Filtros (Visual) -->
+        <aside class="sidebar">
+            <div class="filter-group">
+                <h3>Categoría</h3>
+                <label><input type="checkbox"> Zapatillas</label>
+                <label><input type="checkbox"> Polerones</label>
+                <label><input type="checkbox"> Gorros</label>
+            </div>
+            
+            <div class="filter-group">
+                <h3>Talla</h3>
+                <label><input type="checkbox"> US 8 / S</label>
+                <label><input type="checkbox"> US 9 / M</label>
+                <label><input type="checkbox"> US 10 / L</label>
+            </div>
+
+            <div class="filter-group">
+                <h3>Estado</h3>
+                <label><input type="radio" name="estado"> Nuevo</label>
+                <label><input type="radio" name="estado"> Usado</label>
+            </div>
+            
+            <button style="width: 100%; padding: 10px; background: #111; color: white; border: none; cursor: pointer; font-weight: bold;">Aplicar Filtros</button>
+        </aside>
+
+        <!-- Cuadrícula del Catálogo -->
+        <main class="catalog-grid">
+            
+            <!-- Producto 1 -->
+            <article class="product-card">
+                <img src="https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=60" alt="Zapatilla" class="product-image">
+                <div class="product-info">
+                    <div class="brand">Nike</div>
+                    <h2 class="product-title">Dunk Low "Panda"</h2>
+                    <div class="product-meta">
+                        <span>Talla: US 10</span>
+                        <span>Usado</span>
+                    </div>
+                    <div class="price">$120.000</div>
+                </div>
+            </article>
+
+            <!-- Producto 2 -->
+            <article class="product-card">
+                <img src="https://images.unsplash.com/photo-1556821840-3a63f95609a7?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=60" alt="Polerón" class="product-image">
+                <div class="product-info">
+                    <div class="brand">Stüssy</div>
+                    <h2 class="product-title">Basic Logo Hoodie</h2>
+                    <div class="product-meta">
+                        <span>Talla: L</span>
+                        <span>Nuevo</span>
+                    </div>
+                    <div class="price">$85.000</div>
+                </div>
+            </article>
+
+            <!-- Producto 3 -->
+            <article class="product-card">
+                <img src="https://images.unsplash.com/photo-1608231387042-66d1773070a5?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=60" alt="Zapatilla" class="product-image">
+                <div class="product-info">
+                    <div class="brand">Jordan</div>
+                    <h2 class="product-title">Air Jordan 1 Retro High</h2>
+                    <div class="product-meta">
+                        <span>Talla: US 9.5</span>
+                        <span>Usado</span>
+                    </div>
+                    <div class="price">$190.000</div>
+                </div>
+            </article>
+
+            <!-- Producto 4 -->
+            <article class="product-card">
+                <img src="https://images.unsplash.com/photo-1588850561407-ed78c282e89b?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=60" alt="Gorro" class="product-image">
+                <div class="product-info">
+                    <div class="brand">Supreme</div>
+                    <h2 class="product-title">Camp Cap Black</h2>
+                    <div class="product-meta">
+                        <span>Talla: Única</span>
+                        <span>Nuevo</span>
+                    </div>
+                    <div class="price">$65.000</div>
+                </div>
+            </article>
+
+        </main>
+    </div>
+
+</body>
+</html>
