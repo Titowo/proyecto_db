@@ -4,7 +4,7 @@ from .models import Articulo, Categoria
 def catalogo(request):
     categorias = Categoria.objects.all()
     #solo mostrar articulos disponibles
-    articulos = Articulo.objects.filter(estado_publicacion='Activo').select_related('id_categoria')
+    articulos = Articulo.objects.filter(estado_publicacion='Disponible').select_related('id_categoria')
 
     # captura de parametros GET
     categoria_id = request.GET.get('categoria')
