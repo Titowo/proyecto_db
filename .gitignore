@@ -1,4 +1,5 @@
 venv/
+sincronizar_secuencias_postgres.sql
 __pycache__/
 *.pyc
 db.sqlite3
