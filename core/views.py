@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from .models import Articulo, Categoria
+from decimal import Decimal 
 
 def catalogo(request):
     categorias = Categoria.objects.all()
