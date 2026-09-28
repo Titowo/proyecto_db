@@ -15,9 +15,11 @@ WHERE id_categoria = 1
   AND estado_publicacion = 'Disponible';
 
 -- 3. Insert (Registro de Usuario)
--- Crea un nuevo usuario en la plataforma.
+-- Crea un nuevo usuario en la plataforma (ignora si el correo ya existe para evitar errores).
 INSERT INTO core_usuario (nombre1, apellido1, correo, contrasena, fecha_registro) 
-VALUES ('Juan', 'Perez', 'juan.perez@email.com', 'hash_contrasena', CURRENT_TIMESTAMP);
+VALUES ('Juan', 'Perez', 'juan.perez@email.com', 'hash_contrasena', CURRENT_TIMESTAMP)
+ON CONFLICT (correo) DO NOTHING;
+
 
 -- 4. Insert (Publicación de Artículo)
 -- El usuario (id=1) publica unas zapatillas en la categoría (id=2).

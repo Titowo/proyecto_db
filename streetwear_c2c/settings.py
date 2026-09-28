@@ -29,7 +29,7 @@ ALLOWED_HOSTS = ['*']
 CSRF_TRUSTED_ORIGINS = [
     'https://36bc-2800-300-6f73-cf90-ec71-332c-a4f-6f9b.ngrok-free.app',
     'https://e5b5-2800-300-6e51-77a0-e118-95af-c581-bfc4.ngrok-free.app',
-    'ttps://daa1-2800-300-6e51-77a0-e118-95af-c581-bfc4.ngrok-free.app',
+    'https://daa1-2800-300-6e51-77a0-e118-95af-c581-bfc4.ngrok-free.app',
 ]
 
 
