@@ -24,7 +24,7 @@ El código está estructurado separando las responsabilidades de la lógica del 
 
 ### 1. Clonar y preparar el entorno
 ```bash
-git clone <URL_DEL_REPOSITORIO>
+git clone https://github.com/Titowo/proyecto_db.git
 cd streetwear_c2c
 
 # Crear y activar entorno virtual
