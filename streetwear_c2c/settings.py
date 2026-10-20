@@ -1,4 +1,3 @@
-
 """
 Django settings for streetwear_c2c project.
 """
@@ -51,7 +50,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'streetwear_c2c.urls.py'
+ROOT_URLCONF = 'streetwear_c2c.urls'
 
 TEMPLATES = [
     {
@@ -84,7 +83,7 @@ DATABASES = {
 }
 
 # Iniciamos la conexión nativa orientada a documentos hacia el contenedor en OrbStack
-connect('c2c_db_mongo', host='localhost', port=27017)
+connect('c2c_streetwear_db', host='localhost', port=27017)
 
 
 # ==============================================================================
@@ -98,3 +97,4 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+MESSAGE_STORAGE = 'django.contrib.messages.storage.cookie.CookieStorage'

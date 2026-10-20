@@ -11,12 +11,15 @@
     <!-- Zona de filtros -->
     <form method="GET" action="">
         <label>Categoría (Obligatorio):</label>
-        <select name="categoria" required>
-            <option value="">Seleccione...</option>
-            {% for cat in categorias %}
-                <option value="{{ cat.id_categoria }}">{{ cat.nombre }}</option>
-            {% endfor %}
-        </select>
+        <select name="categoria" id="categoria" required>
+    <option value="">Selecciona una categoría</option>
+    <!-- Recorremos la variable 'categorias' que enviamos desde views.py -->
+    {% for c in categorias %}
+        <option value="{{ c.id_categoria }}">
+            {{ c.nombre }}
+        </option>
+    {% endfor %}
+</select>
 
         <label>Precio Mínimo (Obligatorio):</label>
         <input type="number" name="precio_min" required>
