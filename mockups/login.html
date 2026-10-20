@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acceso - C2C Streetwear</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="login">
+
+  <div id="app-header"></div>
+
+  <div class="auth-container">
+    
+    <!-- Caja de Inicio de Sesión (RF2) -->
+    <div class="auth-box" id="box-login">
+      <h2>Iniciar Sesión</h2>
+      <form id="form-login">
+        <div class="field">
+          <label>Correo Electrónico</label>
+          <input type="email" id="l-email" placeholder="ejemplo@correo.com" required>
+        </div>
+        <div class="field">
+          <label>Contraseña</label>
+          <input type="password" id="l-pass" required>
+        </div>
+        <button type="submit" class="btn accent block">Ingresar a mi cuenta</button>
+        <p class="switch-auth">¿No tienes cuenta? <a href="#" id="to-register">Regístrate aquí</a></p>
+      </form>
+    </div>
+
+    <!-- Caja de Registro (RF1) -->
+    <div class="auth-box" id="box-register" style="display:none;">
+      <h2>Crear Cuenta</h2>
+      <form id="form-register">
+        <div class="field">
+          <label>Nombre Completo</label>
+          <input type="text" id="r-name" placeholder="Ej: Pedro Jeria" required>
+        </div>
+        <div class="field">
+          <label>Correo Electrónico</label>
+          <input type="email" id="r-email" placeholder="ejemplo@correo.com" required>
+        </div>
+        <div class="field">
+          <label>Contraseña</label>
+          <input type="password" id="r-pass" required>
+        </div>
+        <button type="submit" class="btn block">Registrarme</button>
+        <p class="switch-auth">¿Ya tienes cuenta? <a href="#" id="to-login">Inicia sesión</a></p>
+      </form>
+    </div>
+
+  </div>
+
+  <script src="data.js"></script>
+  <script>
+    renderHeader('login');
+    const $ = (id) => document.getElementById(id);
+
+    // Si ya está logueado, mandarlo al catálogo
+    if (Auth.getUser()) window.location.href = 'catalogo.html';
+
+    // Alternar vistas
+    $('to-register').onclick = (e) => { e.preventDefault(); $('box-login').style.display = 'none'; $('box-register').style.display = 'block'; };
+    $('to-login').onclick = (e) => { e.preventDefault(); $('box-register').style.display = 'none'; $('box-login').style.display = 'block'; };
+
+    // Manejar Login
+    $('form-login').onsubmit = (e) => {
+      e.preventDefault();
+      const ok = Auth.login($('l-email').value, $('l-pass').value);
+      if (ok) {
+        toast('Bienvenido nuevamente');
+        setTimeout(() => window.location.href = 'catalogo.html', 800);
+      } else {
+        toast('Correo o contraseña incorrectos');
+      }
+    };
+
+    // Manejar Registro
+    $('form-register').onsubmit = (e) => {
+      e.preventDefault();
+      const ok = Auth.register($('r-name').value, $('r-email').value, $('r-pass').value);
+      if (ok) {
+        toast('Cuenta creada con éxito');
+        setTimeout(() => window.location.href = 'perfil.html', 800);
+      } else {
+        toast('Ese correo ya está registrado');
+      }
+    };
+  </script>
+</body>
+</html>

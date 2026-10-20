@@ -1,169 +1,282 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat y Negociación - C2C Streetwear</title>
-    <style>
-        /* Estilos Base */
-        :root {
-            --primary-color: #111;
-            --bg-color: #f4f4f4;
-            --border-color: #e0e0e0;
-            --msg-sent: #111;
-            --msg-received: #fff;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Helvetica Neue', Arial, sans-serif; }
-        body { background-color: var(--bg-color); color: var(--primary-color); display: flex; flex-direction: column; height: 100vh; }
-        
-        /* Navegación Superior */
-        header.main-header {
-            background-color: #fff; padding: 15px 40px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--primary-color);
-        }
-        .logo { font-size: 20px; font-weight: 900; text-transform: uppercase; letter-spacing: -1px; }
-        
-        /* Contenedor del Chat */
-        .chat-container {
-            display: flex; flex: 1; max-width: 1000px; margin: 20px auto; background: #fff; width: 100%; border: 1px solid var(--border-color); box-shadow: 0 4px 12px rgba(0,0,0,0.05); overflow: hidden;
-        }
-
-        /* Lista de Chats (Sidebar) */
-        .chat-sidebar {
-            width: 300px; border-right: 1px solid var(--border-color); background: #fafafa; display: flex; flex-direction: column;
-        }
-        .sidebar-header { padding: 15px; border-bottom: 1px solid var(--border-color); font-weight: bold; }
-        .chat-item { padding: 15px; border-bottom: 1px solid var(--border-color); cursor: pointer; display: flex; gap: 10px; align-items: center; }
-        .chat-item:hover, .chat-item.active { background: #fff; border-left: 4px solid var(--primary-color); }
-        .chat-item img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
-        .chat-item-info h4 { font-size: 14px; margin-bottom: 3px; }
-        .chat-item-info p { font-size: 12px; color: #666; }
-
-        /* Área Principal del Chat */
-        .chat-main {
-            flex: 1; display: flex; flex-direction: column; position: relative;
-        }
-
-        /* Contexto del Artículo (Header del Chat) */
-        .article-context {
-            padding: 15px 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: #fff;
-        }
-        .article-info { display: flex; gap: 15px; align-items: center; }
-        .article-info img { width: 60px; height: 60px; object-fit: cover; border: 1px solid var(--border-color); }
-        .article-details h3 { font-size: 16px; font-weight: bold; }
-        .article-details p { font-size: 13px; color: #666; margin-top: 4px; }
-        
-        /* Panel Transaccional: Marcar Venta (RF10) */
-        .transaction-panel {
-            background: #f9f9f9; border: 1px solid var(--border-color); padding: 10px 15px; border-radius: 6px; display: flex; gap: 10px; align-items: center;
-        }
-        .transaction-panel input { width: 60px; padding: 6px; border: 1px solid #ccc; text-align: center; }
-        .btn-sell { background: #111; color: white; border: none; padding: 8px 15px; font-weight: bold; cursor: pointer; border-radius: 4px; font-size: 13px; }
-        .btn-sell:hover { background: #333; }
-
-        /* Historial de Mensajes */
-        .chat-messages {
-            flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; background: #fdfdfd;
-        }
-        .message { max-width: 60%; padding: 12px 16px; border-radius: 18px; font-size: 14px; line-height: 1.4; position: relative; }
-        .message .time { display: block; font-size: 10px; margin-top: 5px; opacity: 0.7; }
-        
-        .msg-received { background: var(--msg-received); border: 1px solid var(--border-color); align-self: flex-start; border-bottom-left-radius: 4px; }
-        .msg-sent { background: var(--msg-sent); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
-
-        /* Input de Envío */
-        .chat-input {
-            padding: 15px 20px; border-top: 1px solid var(--border-color); background: #fff; display: flex; gap: 10px;
-        }
-        .chat-input input { flex: 1; padding: 12px; border: 1px solid var(--border-color); border-radius: 20px; outline: none; font-size: 14px; }
-        .chat-input button { background: transparent; border: none; font-weight: bold; font-size: 14px; cursor: pointer; color: var(--primary-color); padding: 0 10px; }
-
-        /* Responsividad */
-        @media (max-width: 768px) {
-            .chat-sidebar { display: none; }
-            .article-context { flex-direction: column; align-items: flex-start; gap: 15px; }
-            .transaction-panel { width: 100%; justify-content: space-between; }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat y Negociación - C2C Streetwear</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body class="chat-body" data-page="chat">
 
-    <!-- Encabezado de la App -->
-    <header class="main-header">
-        <div class="logo">C2C Streetwear</div>
-        <div style="font-size: 14px; font-weight: bold;">Perfil: @DiegoVendedor</div>
-    </header>
+  <div id="app-header"></div>
 
-    <div class="chat-container">
-        
-        <!-- Lista de Chats -->
-        <aside class="chat-sidebar">
-            <div class="sidebar-header">Mensajes</div>
-            <div class="chat-item active">
-                <img src="https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=100&q=80" alt="Dunk Low">
-                <div class="chat-item-info">
-                    <h4>@JuanComprador</h4>
-                    <p>Nike Dunk Low "Panda"</p>
-                </div>
-            </div>
-            <div class="chat-item">
-                <img src="https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=100&q=80" alt="Stussy Hoodie">
-                <div class="chat-item-info">
-                    <h4>@CataColeccionista</h4>
-                    <p>Basic Logo Hoodie</p>
-                </div>
-            </div>
-        </aside>
+  <div class="chat-container">
+    <!-- Lista de chats -->
+    <aside class="chat-sidebar">
+      <div class="sidebar-header">Mensajes</div>
+      <div id="threads"></div>
+    </aside>
 
-        <!-- Área Principal de Chat -->
-        <main class="chat-main">
-            
-            <!-- Contexto y Panel de Venta (RF10 y Modelo VENTA / DETALLE_VENTA) -->
-            <div class="article-context">
-                <div class="article-info">
-                    <img src="https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=150&q=80" alt="Artículo">
-                    <div class="article-details">
-                        <h3>Nike Dunk Low "Panda"</h3>
-                        <p>Precio: $120.000 | Stock actual: 2 | Talla: US 10</p>
-                        <p style="color: #27ae60; font-weight: bold; font-size: 12px; margin-top: 2px;">Chat con @JuanComprador</p>
-                    </div>
-                </div>
-                
-                <!-- Formulario simulado para "Marcar Venta Concretada" -->
-                <div class="transaction-panel">
-                    <label style="font-size: 12px; font-weight: bold;">Cant. Acordada:</label>
-                    <input type="number" value="1" min="1" max="2" title="Cantidad a descontar del stock">
-                    <button class="btn-sell">Marcar como Vendido</button>
-                </div>
-            </div>
+    <!-- Chat -->
+    <main class="chat-main">
+      <div class="role-bar">
+        <span class="muted">Vista del mockup:</span>
+        <div class="role-switch">
+          <button id="r-seller">Vendedor</button>
+          <button id="r-buyer">Comprador</button>
+        </div>
+      </div>
 
-            <!-- Historial de Mensajes (Modelo MENSAJE) -->
-            <div class="chat-messages">
-                <div class="message msg-received">
-                    Hola, estoy muy interesado en las zapatillas. ¿Aún tienes stock?
-                    <span class="time">Ayer, 18:45</span>
-                </div>
-                <div class="message msg-sent">
-                    Hola Juan, sí, me quedan 2 pares disponibles.
-                    <span class="time">Ayer, 18:50</span>
-                </div>
-                <div class="message msg-received">
-                    Perfecto. ¿Haces entregas en estación de metro? Te compraría un par si las dejas en $110.000.
-                    <span class="time">Hoy, 09:15</span>
-                </div>
-                <div class="message msg-sent">
-                    Dale, me parece un trato justo. Te entrego mañana en Baquedano. Confirmaré la venta por el sistema para separar tu par.
-                    <span class="time">Hoy, 09:20</span>
-                </div>
-            </div>
+      <div class="article-context">
+        <div class="article-info">
+          <a href="#" id="art-link"><img id="art-img" src="" alt="Artículo"></a>
+          <div class="article-details">
+            <h3 id="art-title"></h3>
+            <p id="art-meta"></p>
+            <p id="art-with" style="color:var(--ok);font-weight:bold;font-size:12px"></p>
+          </div>
+        </div>
+        <div class="transaction-panel" id="panel"></div>
+      </div>
 
-            <!-- Input de Mensaje -->
-            <div class="chat-input">
-                <input type="text" placeholder="Escribe un mensaje a @JuanComprador...">
-                <button>Enviar</button>
-            </div>
+      <div class="stepper-status" id="status"></div>
 
-        </main>
+      <div class="chat-messages" id="msgs"></div>
+
+      <div class="quick" id="quick"></div>
+      <form class="chat-input" id="form">
+        <input type="text" id="text" placeholder="Escribe un mensaje..." autocomplete="off">
+        <button class="send" type="submit">Enviar</button>
+      </form>
+    </main>
+  </div>
+
+  <!-- Modal confirmación de venta -->
+  <div class="modal-bg" id="modal">
+    <div class="modal">
+      <h3>Confirmar venta</h3>
+      <div class="row"><span>Artículo</span><b id="m-title"></b></div>
+      <div class="row"><span>Comprador</span><b id="m-buyer"></b></div>
+      <div class="row"><span>Cantidad</span><b id="m-qty"></b></div>
+      <div class="row"><span>Precio unitario acordado</span><b id="m-unit"></b></div>
+      <div class="row total"><span>Total</span><span id="m-total"></span></div>
+      <p class="muted" style="font-size:12px;margin-top:10px">Al confirmar, se registra la venta y se descuenta la cantidad del stock. Esta acción no se puede deshacer.</p>
+      <div class="btns">
+        <button class="btn secondary" id="m-cancel">Cancelar</button>
+        <button class="btn accent" id="m-ok">Confirmar venta</button>
+      </div>
     </div>
+  </div>
+  
+  <!-- Modal Calificar Vendedor -->
+  <div class="modal-bg" id="modal-rate">
+    <div class="modal">
+      <h3 style="text-align:center;">Calificar a <span id="rate-seller"></span></h3>
+      <div class="star-rating">
+        <input type="radio" id="s5" name="stars" value="5"><label for="s5">★</label>
+        <input type="radio" id="s4" name="stars" value="4"><label for="s4">★</label>
+        <input type="radio" id="s3" name="stars" value="3"><label for="s3">★</label>
+        <input type="radio" id="s2" name="stars" value="2"><label for="s2">★</label>
+        <input type="radio" id="s1" name="stars" value="1"><label for="s1">★</label>
+      </div>
+      <textarea id="rate-comment" class="modal-textarea" placeholder="Deja un comentario sobre tu experiencia (opcional)..."></textarea>
+      <div class="btns">
+        <button class="btn secondary" id="rate-cancel">Cancelar</button>
+        <button class="btn accent" id="rate-ok">Enviar Valoración</button>
+      </div>
+    </div>
+  </div>
 
+  <script src="data.js"></script>
+  <script>
+    renderHeader('chat');
+    const $ = (id) => document.getElementById(id);
+    const params = new URLSearchParams(location.search);
+
+    const T = {
+      1: { buyer: '@JuanComprador', status: 'acordado', agreed: 110000, stock: 2, msgs: [
+        { from: 'buyer', time: 'Ayer, 18:45', text: 'Hola, estoy muy interesado en las zapatillas. ¿Aún tienes stock?' },
+        { from: 'seller', time: 'Ayer, 18:50', text: 'Hola Juan, sí, me quedan 2 pares disponibles.' },
+        { from: 'buyer', time: 'Hoy, 09:15', text: 'Perfecto. ¿Haces entregas en estación de metro? Te compraría un par si las dejas en $110.000.' },
+        { from: 'buyer', time: 'Hoy, 09:15', offer: 110000, state: 'accepted' },
+        { from: 'seller', time: 'Hoy, 09:20', text: 'Dale, me parece un trato justo. Te entrego mañana en Baquedano. Confirmaré la venta por el sistema para separar tu par.' }
+      ]},
+      2: { buyer: '@MatiStreet', status: 'negociando', agreed: null, stock: 1, msgs: [
+        { from: 'buyer', time: 'Hoy, 10:02', text: 'Hola! ¿Está disponible el polerón? ¿Tienes más fotos?' },
+        { from: 'seller', time: 'Hoy, 10:10', text: 'Sí, está disponible y nuevo con etiquetas. Te mando más fotos en un rato.' }
+      ]},
+      3: { buyer: '@JuanComprador', status: 'negociando', agreed: null, stock: 1, msgs: [
+        { from: 'buyer', time: 'Hoy, 11:30', text: 'Buenas, ¿tienes boleta de las Jordan?' }
+      ]},
+      4: { buyer: '@CataColeccionista', status: 'negociando', agreed: null, stock: 3, msgs: [
+        { from: 'buyer', time: 'Hoy, 12:00', text: 'Hola, me interesa la gorra. ¿Aceptas $60.000?' }
+      ]}
+    };
+
+    const startId = params.get('id') && T[params.get('id')] ? Number(params.get('id')) : 1;
+    let cur = startId;
+    let role = params.get('id') ? 'buyer' : 'seller';
+    let qtyAgreed = 1;
+
+    const pr = () => getProduct(cur);
+    const th = () => T[cur];
+    const counterpart = () => role === 'seller' ? th().buyer : pr().seller;
+    const now = () => new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+
+    function renderThreads() {
+      $('threads').innerHTML = Object.keys(T).map(id => {
+        const p = getProduct(id), t = T[id];
+        const who = role === 'seller' ? t.buyer : p.seller;
+        const label = { negociando: 'Negociando', acordado: 'Acuerdo cerrado', vendido: 'Vendido' }[t.status];
+        return `<div class="chat-item ${Number(id) === cur ? 'active' : ''}" data-t="${id}">
+          <img src="${p.img}" alt="${p.title}">
+          <div><h4>${who}</h4><p>${p.brand} ${p.title}</p><span class="st">${label}</span></div>
+        </div>`;
+      }).join('');
+    }
+
+    function renderHead() {
+      const p = pr(), t = th();
+      $('art-img').src = p.img; $('art-link').href = 'producto.html?id=' + p.id;
+      $('art-title').textContent = p.brand + ' ' + p.title;
+      $('art-meta').textContent = `Precio: ${fmt(p.price)} | Stock actual: ${t.stock} | Talla: ${p.size}`;
+      $('art-with').textContent = 'Chat con ' + counterpart();
+      $('r-seller').classList.toggle('on', role === 'seller');
+      $('r-buyer').classList.toggle('on', role === 'buyer');
+    }
+
+    function renderStatus() {
+      const order = ['negociando', 'acordado', 'vendido'];
+      const labels = ['1 · Negociando', '2 · Precio acordado', '3 · Venta confirmada'];
+      const i = order.indexOf(th().status);
+      $('status').innerHTML = labels.map((l, k) => `<span class="step ${k <= i ? 'done' : ''}">${l}</span>${k < 2 ? '<span class="line"></span>' : ''}`).join('');
+    }
+
+    function renderPanel() {
+      const t = th(), p = pr(), panel = $('panel');
+      if (t.status === 'vendido') {
+        panel.innerHTML = role === 'seller'
+          ? `<span class="tag ok">✓ Venta registrada</span><a class="btn small secondary" href="catalogo.html">Volver al catálogo</a>`
+          : `<span class="tag ok">✓ Compra confirmada</span><button class="btn small accent" id="rate">Calificar vendedor</button>`;
+        const r = $('rate'); 
+        if (r) r.onclick = () => {
+           $('rate-seller').textContent = pr().seller;
+           $('modal-rate').classList.add('open');
+        };
+        return;
+      }
+      if (role === 'seller') {
+        const price = t.agreed || p.price;
+        panel.innerHTML = `
+          <label>Cant. acordada:</label>
+          <input type="number" id="p-qty" value="${Math.min(qtyAgreed, t.stock)}" min="1" max="${t.stock}" title="Cantidad a descontar del stock">
+          <label>Precio c/u:</label>
+          <input type="number" id="p-price" value="${price}" step="1000" style="width:100px">
+          <button class="btn small" id="p-sell">Marcar como Vendido</button>`;
+        $('p-qty').oninput = (e) => { qtyAgreed = Math.max(1, Math.min(t.stock, +e.target.value || 1)); };
+        $('p-sell').onclick = openModal;
+      } else {
+        panel.innerHTML = `
+          <label>Mi oferta:</label>
+          <input type="number" id="p-offer" value="${t.agreed || Math.round(p.price * .9 / 1000) * 1000}" step="1000" style="width:100px">
+          <button class="btn small" id="p-send-offer">Enviar oferta</button>`;
+        $('p-send-offer').onclick = () => {
+          const v = +$('p-offer').value; if (!v) return;
+          t.msgs.push({ from: 'buyer', time: now(), offer: v, state: 'pending' });
+          renderMsgs();
+        };
+      }
+    }
+
+    function renderMsgs() {
+      const t = th();
+      $('msgs').innerHTML = t.msgs.map((m, i) => {
+        if (m.system) return `<div class="message msg-system">${m.text}<span class="time">${m.time}</span></div>`;
+        const mine = m.from === role;
+        if (m.offer) {
+          const st = { pending: 'Pendiente de respuesta', accepted: '✓ Oferta aceptada', rejected: 'Oferta rechazada' }[m.state];
+          const canReply = role === 'seller' && m.from === 'buyer' && m.state === 'pending' && t.status !== 'vendido';
+          return `<div class="offer-card" style="align-self:${mine ? 'flex-end' : 'flex-start'}">
+            ${mine ? 'Tu oferta' : 'Oferta de ' + (m.from === 'buyer' ? t.buyer : pr().seller)}
+            <b>${fmt(m.offer)}</b><span class="muted">${st}</span>
+            ${canReply ? `<div style="display:flex;gap:6px;margin-top:8px"><button class="btn small" data-accept="${i}">Aceptar</button><button class="btn small secondary" data-reject="${i}">Rechazar</button></div>` : ''}
+            <span class="time muted" style="display:block;font-size:10px;margin-top:4px">${m.time}</span></div>`;
+        }
+        return `<div class="message ${mine ? 'msg-sent' : 'msg-received'}">${m.text}<span class="time">${m.time}</span></div>`;
+      }).join('');
+      $('msgs').scrollTop = $('msgs').scrollHeight;
+    }
+
+    function renderQuick() {
+      const sets = {
+        seller: ['¿Te acomoda entregar en metro?', 'Te dejo el último precio', 'Sigue disponible'],
+        buyer: ['¿Sigue disponible?', '¿Dónde haces la entrega?', '¿Tienes más fotos?']
+      };
+      $('quick').innerHTML = th().status === 'vendido' ? '' : sets[role].map(s => `<button type="button" data-q="${s}">${s}</button>`).join('');
+    }
+
+    function renderAll() { renderThreads(); renderHead(); renderStatus(); renderPanel(); renderMsgs(); renderQuick(); }
+
+    function send(text) {
+      if (!text.trim()) return;
+      th().msgs.push({ from: role, time: now(), text: text.trim() });
+      renderMsgs();
+    }
+
+    /* Modal Venta */
+    function openModal() {
+      const t = th(), p = pr();
+      const q = Math.max(1, Math.min(t.stock, +$('p-qty').value || 1)), u = +$('p-price').value || p.price;
+      $('m-title').textContent = p.brand + ' ' + p.title; $('m-buyer').textContent = t.buyer;
+      $('m-qty').textContent = q; $('m-unit').textContent = fmt(u); $('m-total').textContent = fmt(q * u);
+      $('modal').dataset.q = q; $('modal').dataset.u = u;
+      $('modal').classList.add('open');
+    }
+    $('m-cancel').onclick = () => $('modal').classList.remove('open');
+    $('m-ok').onclick = () => {
+      const t = th(), q = +$('modal').dataset.q, u = +$('modal').dataset.u;
+      t.stock -= q; t.status = 'vendido'; t.agreed = u;
+      t.msgs.push({ system: true, time: now(), text: `✓ Venta confirmada: ${q} × ${fmt(u)} = <b>${fmt(q * u)}</b>. Stock restante: ${t.stock}.` });
+      $('modal').classList.remove('open');
+      toast('Venta registrada y stock actualizado');
+      renderAll();
+    };
+    
+    /* Modal Calificar */
+    $('rate-cancel').onclick = () => {
+      $('modal-rate').classList.remove('open');
+    };
+    $('rate-ok').onclick = () => {
+      const starEl = document.querySelector('input[name="stars"]:checked');
+      if (!starEl) return toast('Por favor selecciona una puntuación de 1 a 5 estrellas');
+      
+      const comment = $('rate-comment').value;
+      Moderation.saveReview(pr().seller, parseInt(starEl.value), comment);
+      
+      $('modal-rate').classList.remove('open');
+      $('rate').style.display = 'none'; 
+      toast('¡Gracias por tu valoración!');
+    };
+
+    /* Eventos */
+    document.addEventListener('click', (e) => {
+      const t = e.target;
+      if (t.closest('[data-t]')) { cur = Number(t.closest('[data-t]').dataset.t); qtyAgreed = 1; renderAll(); }
+      if (t.dataset.q) send(t.dataset.q);
+      if (t.dataset.accept) {
+        const m = th().msgs[t.dataset.accept]; m.state = 'accepted'; th().status = 'acordado'; th().agreed = m.offer;
+        th().msgs.push({ from: 'seller', time: now(), text: `Acepto ${fmt(m.offer)}. Coordinemos la entrega.` }); renderAll();
+      }
+      if (t.dataset.reject) {
+        th().msgs[t.dataset.reject].state = 'rejected';
+        th().msgs.push({ from: 'seller', time: now(), text: 'Gracias por la oferta, pero no alcanzo a bajar tanto el precio.' }); renderAll();
+      }
+    });
+    $('form').addEventListener('submit', (e) => { e.preventDefault(); send($('text').value); $('text').value = ''; });
+    $('r-seller').onclick = () => { role = 'seller'; renderAll(); };
+    $('r-buyer').onclick = () => { role = 'buyer'; renderAll(); };
+
+    renderAll();
+  </script>
 </body>
 </html>

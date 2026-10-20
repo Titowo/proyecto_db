@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Detalle de Producto - C2C Streetwear</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="producto">
+
+  <div id="app-header"></div>
+  <div class="breadcrumb" id="crumb"></div>
+  <div id="content"></div>
+
+  <div class="related">
+    <h2 class="section-title" style="padding:0">Más de este vendedor y similares</h2>
+    <div class="catalog-grid" id="related"></div>
+  </div>
+  
+  <!-- Modal Reportar Publicación -->
+  <div class="modal-bg" id="modal-report">
+    <div class="modal">
+      <h3>Reportar Publicación</h3>
+      <p style="font-size:13px; color:var(--muted); margin-bottom:12px;">Selecciona el motivo por el cual consideras que esta publicación incumple las normas.</p>
+      <select id="report-reason" class="modal-select">
+        <option value="">Selecciona un motivo...</option>
+        <option value="Contenido sospechoso o fraude">Contenido sospechoso o fraude</option>
+        <option value="Información engañosa o falsa">Información engañosa o falsa</option>
+        <option value="Artículo prohibido o falsificado">Artículo prohibido o falsificado</option>
+      </select>
+      <div class="btns">
+        <button class="btn secondary" id="r-cancel">Cancelar</button>
+        <button class="btn accent" id="r-ok">Enviar Reporte</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="data.js"></script>
+  <script>
+    renderHeader('catalogo');
+    const p = getProduct(new URLSearchParams(location.search).get('id')) || PRODUCTS[0];
+    const s = SELLERS[p.seller];
+    let qty = 1;
+
+    document.title = p.title + ' - C2C Streetwear';
+    document.getElementById('crumb').innerHTML =
+      `<a href="catalogo.html">Catálogo</a> / <a href="catalogo.html">${p.cat}</a> / ${p.title}`;
+
+    document.getElementById('content').innerHTML = `
+    <div class="pdp">
+      <div class="gallery">
+        <img class="main" id="main-img" src="${p.imgs[0]}" alt="${p.title}">
+        <div class="thumbs">${p.imgs.map((u, i) => `<img src="${u}" class="${i === 0 ? 'sel' : ''}" data-i="${i}" alt="Foto ${i + 1}">`).join('')}</div>
+      </div>
+
+      <div class="pdp-info">
+        <div class="brand">${p.brand}</div>
+        <h1>${p.title}</h1>
+        <div class="pdp-price">${fmt(p.price)}</div>
+        <span class="tag ${p.cond === 'Nuevo' ? 'ok' : ''}">${p.cond}</span>
+        <span class="tag">${p.stock} en stock</span>
+
+        <table class="spec-table">
+          <tr><td>Categoría</td><td>${p.cat}</td></tr>
+          <tr><td>Talla</td><td>${p.size}</td></tr>
+          <tr><td>Estado</td><td>${p.cond}</td></tr>
+          <tr><td>Stock disponible</td><td>${p.stock} unidad(es)</td></tr>
+        </table>
+        <p style="font-size:14px;line-height:1.5;color:#333">${p.desc}</p>
+
+        <div class="qty-row">
+          <b style="font-size:13px;text-transform:uppercase">Cantidad</b>
+          <div class="stepper">
+            <button id="minus">−</button><span id="qty">1</span><button id="plus">+</button>
+          </div>
+        </div>
+
+        <div class="cta-row">
+          <button class="btn accent" id="add">Agregar al carrito</button>
+          <a class="btn secondary" id="chat" href="chat.html?id=${p.id}">Negociar con el vendedor</a>
+        </div>
+        <div class="cta-row" style="margin-top:10px">
+          <button class="btn secondary" id="fav">${Store.isFav(p.id) ? '♥ En favoritos' : '♡ Guardar en favoritos'}</button>
+        </div>
+
+        <div class="seller-box">
+          <div class="avatar">${s.initial}</div>
+          <div class="grow">
+            <h4>${p.seller}</h4>
+            <p>★ ${s.rating} · ${s.sales} ventas · ${s.zone}</p>
+          </div>
+          <a class="btn small secondary" href="chat.html?id=${p.id}">Escribir</a>
+        </div>
+        <button class="link-btn" id="btn-reportar" style="color:var(--danger); margin-top:16px; display:block; width:100%; text-align:center;">⚠ Reportar publicación</button>
+        <div class="notice">Compra entre personas: coordina precio, lugar y hora de entrega por el chat. La venta se confirma en el sistema para descontar el stock.</div>
+      </div>
+    </div>`;
+
+    document.querySelectorAll('.thumbs img').forEach(t => t.addEventListener('click', () => {
+      document.getElementById('main-img').src = p.imgs[t.dataset.i];
+      document.querySelectorAll('.thumbs img').forEach(x => x.classList.remove('sel')); t.classList.add('sel');
+    }));
+    const q = document.getElementById('qty');
+    document.getElementById('minus').onclick = () => { qty = Math.max(1, qty - 1); q.textContent = qty; };
+    document.getElementById('plus').onclick = () => { qty = Math.min(p.stock, qty + 1); q.textContent = qty; };
+    document.getElementById('add').onclick = () => { Store.addToCart(p.id, qty); toast('Agregado al carrito de ' + p.seller); };
+    document.getElementById('fav').onclick = (e) => {
+      const on = Store.toggleFav(p.id); e.target.textContent = on ? '♥ En favoritos' : '♡ Guardar en favoritos';
+    };
+    
+    // Lógica del Modal Reportar
+    document.getElementById('btn-reportar').onclick = () => {
+      document.getElementById('modal-report').classList.add('open');
+    };
+    document.getElementById('r-cancel').onclick = () => {
+      document.getElementById('modal-report').classList.remove('open');
+      document.getElementById('report-reason').value = '';
+    };
+    document.getElementById('r-ok').onclick = () => {
+      const reason = document.getElementById('report-reason').value;
+      if (!reason) return toast('Debes seleccionar un motivo');
+      Moderation.saveReport(p.id, reason);
+      document.getElementById('modal-report').classList.remove('open');
+      toast('Reporte enviado a moderación');
+    };
+
+    const rel = PRODUCTS.filter(x => x.id !== p.id).sort((a, b) => (b.seller === p.seller) - (a.seller === p.seller));
+    document.getElementById('related').innerHTML = rel.map(productCard).join('');
+  </script>
+</body>
+</html>

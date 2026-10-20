@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carrito y Favoritos - C2C Streetwear</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="carrito">
+
+  <div id="app-header"></div>
+
+  <div class="page">
+    <h1>Mi Compra</h1>
+    <div class="tabs">
+      <button class="tab active" id="tab-carrito">Carritos por vendedor (<span id="n-carts">0</span>)</button>
+      <button class="tab" id="tab-favoritos">Favoritos (<span id="n-favs">0</span>)</button>
+    </div>
+
+    <!-- Carritos -->
+    <section id="view-carrito">
+      <div class="cart-layout">
+        <div id="carts"></div>
+        <aside class="summary">
+          <h3>Resumen</h3>
+          <div class="row"><span>Carritos (vendedores)</span><span id="s-carts">0</span></div>
+          <div class="row"><span>Artículos</span><span id="s-items">0</span></div>
+          <div class="row total"><span>Total estimado</span><span id="s-total">$0</span></div>
+          <p class="hint">Cada vendedor tiene su propio carrito: la entrega y el precio final se acuerdan por separado en el chat de cada uno. No se paga todo junto.</p>
+        </aside>
+      </div>
+    </section>
+
+    <!-- Favoritos -->
+    <section id="view-favoritos" style="display:none">
+      <div class="catalog-grid" id="favs"></div>
+    </section>
+  </div>
+
+  <script src="data.js"></script>
+  <script>
+    renderHeader('carrito');
+    const $ = (id) => document.getElementById(id);
+
+    function renderCarts() {
+      const cart = Store.cart();
+      const groups = {};
+      Object.entries(cart).forEach(([id, qty]) => {
+        const p = getProduct(id); if (!p || qty < 1) return;
+        (groups[p.seller] = groups[p.seller] || []).push({ p, qty });
+      });
+      const sellers = Object.keys(groups);
+      let items = 0, total = 0;
+
+      $('carts').innerHTML = sellers.length ? sellers.map(sel => {
+        const s = SELLERS[sel], rows = groups[sel];
+        const sub = rows.reduce((a, r) => a + r.p.price * r.qty, 0);
+        const cnt = rows.reduce((a, r) => a + r.qty, 0);
+        items += cnt; total += sub;
+        return `
+        <div class="seller-cart">
+          <div class="head">
+            <div class="avatar">${s.initial}</div>
+            <div class="grow"><h3>Carrito de ${sel}</h3><p>★ ${s.rating} · ${s.zone} · ${cnt} artículo(s)</p></div>
+            <button class="btn small accent" data-clear="${sel}">Vaciar</button>
+          </div>
+          ${rows.map(({ p, qty }) => `
+          <div class="cart-item">
+            <a href="producto.html?id=${p.id}"><img src="${p.img}" alt="${p.title}"></a>
+            <div>
+              <div class="brand">${p.brand}</div>
+              <h4><a href="producto.html?id=${p.id}">${p.title}</a></h4>
+              <div class="sub">Talla ${p.size} · ${p.cond} · Stock: ${p.stock}</div>
+              <div class="actions">
+                <button class="link-btn" data-tofav="${p.id}">Mover a favoritos</button>
+                <button class="link-btn" data-remove="${p.id}">Eliminar</button>
+              </div>
+            </div>
+            <div class="right">
+              <div class="price">${fmt(p.price * qty)}</div>
+              <div class="stepper">
+                <button data-dec="${p.id}">−</button><span>${qty}</span><button data-inc="${p.id}">+</button>
+              </div>
+            </div>
+          </div>`).join('')}
+          <div class="foot">
+            <div class="total">Subtotal ${sel}<b>${fmt(sub)}</b></div>
+            <a class="btn" href="chat.html?id=${rows[0].p.id}">Coordinar compra con ${sel} →</a>
+          </div>
+        </div>`;
+      }).join('') : `<div class="empty" style="border:1px dashed #ccc;background:#fff;padding:50px;text-align:center">Tu carrito está vacío. <a href="catalogo.html" style="text-decoration:underline;font-weight:bold">Ir al catálogo</a></div>`;
+
+      $('n-carts').textContent = sellers.length; $('s-carts').textContent = sellers.length;
+      $('s-items').textContent = items; $('s-total').textContent = fmt(total);
+      Store.updateBadges();
+    }
+
+    function renderFavs() {
+      const list = Store.favs().map(getProduct).filter(Boolean);
+      $('n-favs').textContent = list.length;
+      $('favs').innerHTML = list.length
+        ? list.map(p => productCard(p) ).join('')
+        : `<div class="empty">Aún no tienes favoritos. Toca el ♡ en cualquier artículo.</div>`;
+    }
+    function onFavChange() { renderFavs(); }
+
+    document.addEventListener('click', (e) => {
+      const t = e.target, cart = Store.cart();
+      if (t.dataset.inc) { const p = getProduct(t.dataset.inc); cart[t.dataset.inc] = Math.min(p.stock, (cart[t.dataset.inc] || 0) + 1); Store.setCart(cart); renderCarts(); }
+      else if (t.dataset.dec) { cart[t.dataset.dec] = Math.max(1, (cart[t.dataset.dec] || 1) - 1); Store.setCart(cart); renderCarts(); }
+      else if (t.dataset.remove) { delete cart[t.dataset.remove]; Store.setCart(cart); renderCarts(); }
+      else if (t.dataset.tofav) {
+        delete cart[t.dataset.tofav]; Store.setCart(cart);
+        if (!Store.isFav(t.dataset.tofav)) Store.toggleFav(t.dataset.tofav);
+        renderCarts(); renderFavs(); toast('Movido a favoritos');
+      }
+      else if (t.dataset.clear) {
+        Object.keys(cart).forEach(id => { if (getProduct(id).seller === t.dataset.clear) delete cart[id]; });
+        Store.setCart(cart); renderCarts();
+      }
+    });
+
+    function showTab(name) {
+      $('view-carrito').style.display = name === 'carrito' ? '' : 'none';
+      $('view-favoritos').style.display = name === 'favoritos' ? '' : 'none';
+      $('tab-carrito').classList.toggle('active', name === 'carrito');
+      $('tab-favoritos').classList.toggle('active', name === 'favoritos');
+    }
+    $('tab-carrito').onclick = () => { showTab('carrito'); history.replaceState(null, '', 'carrito.html'); };
+    $('tab-favoritos').onclick = () => { showTab('favoritos'); history.replaceState(null, '', '#favoritos'); };
+
+    renderCarts(); renderFavs();
+    const applyHash = () => showTab(location.hash === '#favoritos' ? 'favoritos' : 'carrito');
+    window.addEventListener('hashchange', applyHash);
+    applyHash();
+  </script>
+</body>
+</html>

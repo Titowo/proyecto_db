@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mi Perfil - C2C Streetwear</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="perfil">
+
+  <div id="app-header"></div>
+
+  <div class="page">
+    <!-- Cabecera de perfil -->
+    <div class="profile-hero">
+      <div class="avatar" id="h-avatar">D</div>
+      <div class="grow">
+        <h1 id="h-name"></h1>
+        <div class="handle" id="h-handle"></div>
+        <p class="bio" id="h-bio"></p>
+        <p class="muted" style="font-size:12px;margin-top:8px" id="h-meta"></p>
+      </div>
+      <button class="btn secondary" id="btn-edit">Editar perfil</button>
+    </div>
+
+    <!-- Selector de vista -->
+    <div class="profile-bar">
+      <div class="tabs" style="margin:0;border:none">
+        <button class="tab active" id="v-buyer">Vista Comprador</button>
+        <button class="tab" id="v-seller">Vista Vendedor</button>
+      </div>
+      <span class="muted" style="font-size:12px">Una misma cuenta puede comprar y vender.</span>
+    </div>
+
+    <!-- Edición -->
+    <div class="panel" id="edit-panel" style="display:none">
+      <h3>Editar mis datos</h3>
+      <form class="body form-grid" id="edit-form">
+        <div><label>Nombre</label><input id="e-name" required></div>
+        <div><label>Usuario</label><input id="e-handle" required></div>
+        <div class="full"><label>Correo Electrónico</label><input type="email" id="e-email" required></div>
+        <div><label>Comuna / zona</label><input id="e-zone"></div>
+        <div><label>Contacto preferido</label>
+          <select id="e-contact"><option>Solo chat de la plataforma</option><option>WhatsApp</option><option>Instagram</option></select></div>
+        <div class="full"><label>Punto de entrega habitual</label><input id="e-meet" placeholder="Ej: Metro Baquedano"></div>
+        <div class="full"><label>Biografía</label><textarea id="e-bio"></textarea></div>
+        <div class="full" style="display:flex;gap:10px;justify-content:flex-end">
+          <button type="button" class="btn secondary" id="e-cancel">Cancelar</button>
+          <button type="submit" class="btn accent">Guardar cambios</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Vista comprador -->
+    <section id="buyer-view">
+      <div class="stats" id="b-stats"></div>
+      <div class="two-col">
+        <div class="panel">
+          <h3>Mis compras <a class="link-btn" href="chat.html?id=1">Ir a mis chats</a></h3>
+          <div id="b-orders"></div>
+        </div>
+        <div>
+          <div class="panel">
+            <h3>Favoritos <a class="link-btn" href="carrito.html#favoritos">Ver todos</a></h3>
+            <div id="b-favs"></div>
+          </div>
+          <div class="panel">
+            <h3>Carritos activos <a class="link-btn" href="carrito.html">Ir al carrito</a></h3>
+            <div id="b-carts"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Vista vendedor -->
+    <section id="seller-view" style="display:none">
+      <div class="stats" id="s-stats"></div>
+      <div class="panel">
+        <h3>Mis publicaciones <button class="btn small accent" id="btn-new">+ Nueva publicación</button></h3>
+        <form class="body form-grid" id="new-form" style="display:none;border-bottom:1px solid var(--border)">
+          <div><label>Marca</label><input id="n-brand" required></div>
+          <div><label>Título</label><input id="n-title" required></div>
+          <div><label>Categoría</label><select id="n-cat"><option>Zapatillas</option><option>Polerones</option><option>Gorros</option></select></div>
+          <div><label>Talla</label><input id="n-size" placeholder="US 9 / M"></div>
+          <div><label>Estado</label><select id="n-cond"><option>Nuevo</option><option>Usado</option></select></div>
+          <div><label>Precio (CLP)</label><input id="n-price" type="number" step="1000" required></div>
+          <div><label>Stock</label><input id="n-stock" type="number" min="1" value="1"></div>
+          <div class="full"><label>Descripción</label><textarea id="n-desc" required placeholder="Describe los detalles del producto..."></textarea></div>
+          <div class="full" style="text-align:right"><button class="btn" type="submit">Publicar</button></div>
+        </form>
+        <div id="s-list"></div>
+      </div>
+      <div class="two-col">
+        <div class="panel">
+          <h3>Ventas recientes <a class="link-btn" href="chat.html">Ir a mis chats</a></h3>
+          <div id="s-sales"></div>
+        </div>
+        <div class="panel">
+          <h3>Valoraciones recibidas</h3>
+          <div id="s-reviews"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="data.js"></script>
+  <script>
+    renderHeader('perfil');
+    const $ = (id) => document.getElementById(id);
+
+    const DEFAULT = { name: 'Diego Fuentes', handle: '@DiegoVendedor', email: 'test@c2c.cl', zone: 'Santiago Centro', contact: 'Solo chat de la plataforma',
+      meet: 'Metro Baquedano', bio: 'Coleccionista de sneakers y streetwear. Vendo piezas originales, con boleta cuando la tengo. Entrego en metro.' };
+    let prof = load('c2c_profile', DEFAULT);
+
+    const ORDERS = [
+      { id: 3, state: 'En coordinación', date: 'Hoy' },
+      { id: 2, state: 'Entregado', date: '02 oct' },
+      { id: 4, state: 'Entregado', date: '18 sep' }
+    ];
+    const SALES = [
+      { id: 1, buyer: '@JuanComprador', qty: 1, unit: 110000, date: '12 oct' },
+      { id: 4, buyer: '@CataColeccionista', qty: 2, unit: 60000, date: '03 oct' }
+    ];
+    const REVIEWS = [
+      { who: '@JuanComprador', stars: 5, text: 'Todo perfecto, zapatillas tal cual las fotos y súper puntual en la entrega.' },
+      { who: '@MatiStreet', stars: 5, text: 'Muy buena onda, respondió rápido y respetó el precio.' },
+      { who: '@NachoKicks', stars: 4, text: 'Buen vendedor, solo se demoró un poco en coordinar.' }
+    ];
+    const stars = (n) => '★'.repeat(n) + '☆'.repeat(5 - n);
+
+    function renderHero() {
+      $('h-avatar').textContent = (prof.name || '?').trim()[0].toUpperCase();
+      $('h-name').textContent = prof.name; $('h-handle').textContent = prof.handle;
+      $('h-bio').textContent = prof.bio;
+      $('h-meta').textContent = `📍 ${prof.zone} · Entrega en: ${prof.meet || '—'} · Contacto: ${prof.contact}`;
+    }
+
+    const myItems = () => PRODUCTS.filter(p => p.seller === prof.handle);
+
+    function renderBuyer() {
+      const carts = new Set(Object.keys(Store.cart()).map(id => getProduct(id).seller));
+      $('b-stats').innerHTML = [
+        [ORDERS.length, 'Compras'], [Store.favs().length, 'Favoritos'], [carts.size, 'Carritos activos'], ['4.8 ★', 'Reputación como comprador']
+      ].map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join('');
+
+      $('b-orders').innerHTML = ORDERS.map(o => { const p = getProduct(o.id); return `
+        <div class="list-row"><img src="${p.img}" alt=""><div><h4>${p.brand} ${p.title}</h4><div class="sub">${p.seller} · ${o.date}</div></div>
+        <div class="end"><div class="price">${fmt(p.price)}</div><span class="tag ${o.state === 'Entregado' ? 'ok' : ''}">${o.state}</span></div></div>`; }).join('');
+
+      const favs = Store.favs().map(getProduct).filter(Boolean);
+      $('b-favs').innerHTML = favs.length ? favs.map(p => `
+        <div class="list-row"><img src="${p.img}" alt=""><div><h4><a href="producto.html?id=${p.id}">${p.title}</a></h4><div class="sub">${p.seller}</div></div><div class="end price">${fmt(p.price)}</div></div>`).join('')
+        : '<div class="body muted">Sin favoritos aún.</div>';
+
+      const bySeller = {};
+      Object.entries(Store.cart()).forEach(([id, q]) => { const p = getProduct(id); (bySeller[p.seller] = bySeller[p.seller] || []).push(p.price * q); });
+      const keys = Object.keys(bySeller);
+      $('b-carts').innerHTML = keys.length ? keys.map(s => `
+        <div class="list-row" style="grid-template-columns:44px 1fr auto"><div class="avatar" style="width:40px;height:40px;font-size:15px">${SELLERS[s].initial}</div>
+        <div><h4>${s}</h4><div class="sub">${bySeller[s].length} producto(s)</div></div><div class="end price">${fmt(bySeller[s].reduce((a, b) => a + b, 0))}</div></div>`).join('')
+        : '<div class="body muted">No tienes carritos activos.</div>';
+    }
+
+    function renderSeller() {
+      const items = myItems();
+      const total = SALES.reduce((a, s) => a + s.qty * s.unit, 0);
+      $('s-stats').innerHTML = [
+        [items.length, 'Publicaciones activas'], [items.reduce((a, p) => a + p.stock, 0), 'Unidades en stock'],
+        [SALES.length + 35, 'Ventas totales'], [fmt(total), 'Vendido este mes'], [(SELLERS[prof.handle] || { rating: '5.0' }).rating + ' ★', 'Valoración']
+      ].map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join('');
+
+      $('s-list').innerHTML = items.length ? items.map(p => `
+        <div class="list-row" style="grid-template-columns:64px 1fr auto">
+          <a href="producto.html?id=${p.id}"><img src="${p.img}" alt=""></a>
+          <div><h4>${p.brand} ${p.title}</h4><div class="sub">Talla ${p.size} · ${p.cond}</div>
+            <div class="sub" style="margin-top:6px"><label>Precio <input class="inline-in" type="number" step="1000" value="${p.price}" data-price="${p.id}" style="width:100px"></label>
+            &nbsp;<label>Stock <input class="inline-in" type="number" min="0" value="${p.stock}" data-stock="${p.id}" style="width:60px"></label></div></div>
+          <div class="end"><span class="tag ${p.stock > 0 ? 'ok' : ''}">${p.stock > 0 ? 'Activa' : 'Agotada'}</span><br>
+            <button class="link-btn" data-del="${p.id}" style="margin-top:8px">Eliminar</button></div>
+        </div>`).join('') : '<div class="body muted">No tienes publicaciones. Crea la primera.</div>';
+
+      $('s-sales').innerHTML = SALES.map(s => { const p = getProduct(s.id); return `
+        <div class="list-row"><img src="${p.img}" alt=""><div><h4>${p.brand} ${p.title}</h4><div class="sub">${s.buyer} · ${s.date}</div></div>
+        <div class="end"><div class="price">${fmt(s.qty * s.unit)}</div><div class="sub">${s.qty} × ${fmt(s.unit)}</div></div></div>`; }).join('');
+
+      $('s-reviews').innerHTML = REVIEWS.map(r => `<div class="review"><div class="who">${r.who} · <span class="stars">${stars(r.stars)}</span></div>${r.text}</div>`).join('');
+    }
+
+    function setView(v) {
+      $('buyer-view').style.display = v === 'buyer' ? '' : 'none';
+      $('seller-view').style.display = v === 'seller' ? '' : 'none';
+      $('v-buyer').classList.toggle('active', v === 'buyer'); $('v-seller').classList.toggle('active', v === 'seller');
+      history.replaceState(null, '', '#' + v);
+    }
+    $('v-buyer').onclick = () => setView('buyer'); $('v-seller').onclick = () => setView('seller');
+
+    $('btn-edit').onclick = () => {
+      $('e-name').value = prof.name; $('e-handle').value = prof.handle; 
+      $('e-email').value = prof.email || ''; $('e-zone').value = prof.zone;
+      $('e-contact').value = prof.contact; $('e-meet').value = prof.meet; $('e-bio').value = prof.bio;
+      $('edit-panel').style.display = ''; $('edit-panel').scrollIntoView({ behavior: 'smooth' });
+    };
+    $('e-cancel').onclick = () => $('edit-panel').style.display = 'none';
+    $('edit-form').onsubmit = (e) => {
+      e.preventDefault();
+      let h = $('e-handle').value.trim(); if (!h.startsWith('@')) h = '@' + h;
+      prof = { name: $('e-name').value.trim(), handle: h, email: $('e-email').value.trim(), zone: $('e-zone').value.trim(), contact: $('e-contact').value, meet: $('e-meet').value.trim(), bio: $('e-bio').value.trim() };
+      save('c2c_profile', prof); renderHero(); renderSeller(); $('edit-panel').style.display = 'none'; toast('Perfil actualizado');
+    };
+
+    $('btn-new').onclick = () => { const f = $('new-form'); f.style.display = f.style.display === 'none' ? '' : 'none'; };
+    $('new-form').onsubmit = (e) => {
+      e.preventDefault();
+      const img = PRODUCTS[Math.floor(Math.random() * PRODUCTS.length)].img;
+      PRODUCTS.push({ id: Math.max(...PRODUCTS.map(p => p.id)) + 1, brand: $('n-brand').value, title: $('n-title').value, cat: $('n-cat').value,
+        size: $('n-size').value || 'Única', sizeGroup: 'Única', cond: $('n-cond').value, price: +$('n-price').value, stock: +$('n-stock').value || 1,
+        seller: prof.handle, img, imgs: [img], desc: $('n-desc').value.trim() });
+      e.target.reset(); e.target.style.display = 'none'; renderSeller(); toast('Publicación creada');
+    };
+    document.addEventListener('change', (e) => {
+      const t = e.target;
+      if (t.dataset.price) { getProduct(t.dataset.price).price = +t.value; toast('Precio actualizado'); }
+      if (t.dataset.stock) { getProduct(t.dataset.stock).stock = Math.max(0, +t.value); renderSeller(); toast('Stock actualizado'); }
+    });
+    document.addEventListener('click', (e) => {
+      if (e.target.dataset.del) { PRODUCTS.splice(PRODUCTS.findIndex(p => p.id === +e.target.dataset.del), 1); renderSeller(); toast('Publicación eliminada'); }
+    });
+
+    renderHero(); renderBuyer(); renderSeller();
+    setView(location.hash === '#seller' ? 'seller' : 'buyer');
+  </script>
+</body>
+</html>

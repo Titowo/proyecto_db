@@ -1,315 +1,150 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Catálogo - C2C Streetwear</title>
-    <style>
-        /* Estilos Base */
-        :root {
-            --primary-color: #111;
-            --bg-color: #f8f8f8;
-            --border-color: #e0e0e0;
-        }
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-        }
-        body {
-            background-color: var(--bg-color);
-            color: var(--primary-color);
-        }
-        a {
-            text-decoration: none;
-            color: inherit;
-        }
-
-        /* Navegación (Header) */
-        header {
-            background-color: #fff;
-            padding: 20px 40px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid var(--primary-color);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-        .logo {
-            font-size: 24px;
-            font-weight: 900;
-            letter-spacing: -1px;
-            text-transform: uppercase;
-        }
-        .nav-links gap {
-            display: flex;
-            gap: 20px;
-        }
-        .btn-login {
-            background-color: var(--primary-color);
-            color: #fff;
-            padding: 8px 16px;
-            font-weight: bold;
-            border-radius: 4px;
-        }
-
-        /* Layout Principal (Filtros + Catálogo) */
-        .container {
-            display: grid;
-            grid-template-columns: 250px 1fr;
-            gap: 30px;
-            max-width: 1200px;
-            margin: 40px auto;
-            padding: 0 20px;
-        }
-
-        /* Barra Lateral (Filtros estáticos) */
-        .sidebar {
-            background: #fff;
-            padding: 20px;
-            border: 1px solid var(--border-color);
-            height: fit-content;
-        }
-        .filter-group {
-            margin-bottom: 20px;
-        }
-        .filter-group h3 {
-            font-size: 16px;
-            margin-bottom: 10px;
-            text-transform: uppercase;
-        }
-        .filter-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-size: 14px;
-            cursor: pointer;
-        }
-
-        /* Cuadrícula de Productos (Grid) */
-        .catalog-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 20px;
-        }
-
-        /* Tarjeta de Producto */
-        .product-card {
-            background: #fff;
-            border: 1px solid var(--border-color);
-            transition: transform 0.2s, box-shadow 0.2s;
-            cursor: pointer;
-        }
-        .product-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-        }
-        .product-image {
-            width: 100%;
-            height: 250px;
-            background-color: #eaeaea;
-            object-fit: cover;
-            border-bottom: 1px solid var(--border-color);
-        }
-        .product-info {
-            padding: 15px;
-        }
-        .brand {
-            font-size: 12px;
-            color: #666;
-            text-transform: uppercase;
-            font-weight: bold;
-        }
-        .product-title {
-            font-size: 16px;
-            margin: 5px 0 10px;
-            font-weight: 600;
-        }
-        .product-meta {
-            display: flex;
-            justify-content: space-between;
-            font-size: 14px;
-            color: #444;
-            margin-bottom: 10px;
-        }
-        .price {
-            font-size: 18px;
-            font-weight: 800;
-        }
-
-        /* Responsividad (Móviles) */
-        @media (max-width: 768px) {
-            .container {
-                grid-template-columns: 1fr;
-            }
-            .sidebar {
-                display: none; /* Oculta filtros en móvil para este mockup */
-            }
-        }
-
-
-        .search-bar {
-            display: flex;
-            flex: 1;
-            max-width: 500px; /* Ancho máximo de la barra */
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            overflow: hidden;
-            background-color: #fff;
-        }
-        .search-bar input {
-            flex: 1;
-            padding: 10px 15px;
-            border: none;
-            outline: none;
-            font-size: 14px;
-            background: transparent;
-        }
-        .search-bar button {
-            background-color: var(--primary-color);
-            color: #fff;
-            border: none;
-            padding: 0 15px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: background 0.2s;
-        }
-        .search-bar button:hover {
-            background-color: #333;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Catálogo - C2C Streetwear</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body data-page="catalogo">
 
-    <!-- Encabezado -->
-    <header>
-        <div class="logo">C2C Streetwear</div>
-        <!-- Búsqueda -->
-        <form class="search-bar" action="#" method="GET">
-            <input type="text" placeholder="Buscar zapatillas, polerones, marcas..." name="q">
-            <button type="submit">Buscar</button>
-        </form>
-        <div class="nav-links">
-            <a href="#" style="margin-right: 30px; font-weight: bold;">Carrito</a>
-            <a href="#" style="margin-right: 20px; font-weight: bold;">Catálogo</a>
-            <a href="#" class="btn-login">Iniciar Sesión</a>
+  <div id="app-header"></div>
+
+  <div class="container">
+    <!-- Filtros -->
+    <aside class="sidebar">
+      <div class="filter-group">
+        <h3>Rango de Precio</h3>
+        <div class="price-inputs">
+          <div class="field"><span>Mínimo</span><input type="number" id="input-min" value="0" min="0" max="250000" step="5000"></div>
+          <div class="sep">-</div>
+          <div class="field"><span>Máximo</span><input type="number" id="input-max" value="250000" min="0" max="250000" step="5000"></div>
         </div>
-    </header>
+        <div class="range-wrap">
+          <div class="track"></div>
+          <div class="progress" id="range-color"></div>
+          <input type="range" id="range-min" min="0" max="250000" value="0" step="5000">
+          <input type="range" id="range-max" min="0" max="250000" value="250000" step="5000">
+        </div>
+      </div>
 
-    <!-- Contenedor Principal -->
-    <div class="container">
-        
-        <!-- Sidebar de Filtros (Visual) -->
-        <aside class="sidebar">
-            <div class="price-range-container">
-              <h3>Rango de Precio</h3>
-              <div class="price-inputs">
-                <div class="field">
-                  <span>Mínimo</span>
-                  <input type="number" id="input-min" value="100" min="0" max="1000">
-                </div>
-                <div class="separator">-</div>
-                <div class="field">
-                <span>Máximo</span>
-                <input type="number" id="input-max" value="800" min="0" max="1000">
-              </div>
-            </div>
-  
-            <div class="slider-track">
-              <div id="range-color" class="progress"></div>
-            </div>
-  
-            <div class="range-input">
-              <input type="range" id="range-min" min="0" max="1000" value="100" step="10">
-              <input type="range" id="range-max" min="0" max="1000" value="800" step="10">
-            </div>
-            </div>
-            <div class="filter-group">
-                <h3>Categoría</h3>
-                <label><input type="checkbox"> Zapatillas</label>
-                <label><input type="checkbox"> Polerones</label>
-                <label><input type="checkbox"> Gorros</label>
-            </div>
-            
-            <div class="filter-group">
-                <h3>Talla</h3>
-                <label><input type="checkbox"> US 8 / S</label>
-                <label><input type="checkbox"> US 9 / M</label>
-                <label><input type="checkbox"> US 10 / L</label>
-            </div>
+      <div class="filter-group" id="f-cat">
+        <h3>Categoría (Obligatorio)</h3>
+        <label><input type="checkbox" value="Zapatillas" checked> Zapatillas</label>
+        <label><input type="checkbox" value="Polerones" checked> Polerones</label>
+        <label><input type="checkbox" value="Gorros" checked> Gorros</label>
+      </div>
 
-            <div class="filter-group">
-                <h3>Estado</h3>
-                <label><input type="radio" name="estado"> Nuevo</label>
-                <label><input type="radio" name="estado"> Usado</label>
-            </div>
-            
-            <button style="width: 100%; padding: 10px; background: #111; color: white; border: none; cursor: pointer; font-weight: bold;">Aplicar Filtros</button>
-        </aside>
+      <div class="filter-group" id="f-size">
+        <h3>Talla</h3>
+        <label><input type="checkbox" value="S"> US 8 / S</label>
+        <label><input type="checkbox" value="M"> US 9 / M</label>
+        <label><input type="checkbox" value="L"> US 10 / L</label>
+        <label><input type="checkbox" value="Única"> Talla única</label>
+      </div>
+      
+      <div class="filter-group" id="f-brand">
+        <h3>Marca</h3>
+        <label><input type="checkbox" value="Nike"> Nike</label>
+        <label><input type="checkbox" value="Jordan"> Jordan</label>
+        <label><input type="checkbox" value="Stüssy"> Stüssy</label>
+        <label><input type="checkbox" value="Supreme"> Supreme</label>
+      </div>
 
-        <!-- Cuadrícula del Catálogo -->
-        <main class="catalog-grid">
-            
-            <!-- Producto 1 -->
-            <article class="product-card">
-                <img src="https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=60" alt="Zapatilla" class="product-image">
-                <div class="product-info">
-                    <div class="brand">Nike</div>
-                    <h2 class="product-title">Dunk Low "Panda"</h2>
-                    <div class="product-meta">
-                        <span>Talla: US 10</span>
-                        <span>Usado</span>
-                    </div>
-                    <div class="price">$120.000</div>
-                </div>
-            </article>
+      <div class="filter-group" id="f-cond">
+        <h3>Estado</h3>
+        <label><input type="radio" name="estado" value="" checked> Todos</label>
+        <label><input type="radio" name="estado" value="Nuevo"> Nuevo</label>
+        <label><input type="radio" name="estado" value="Usado"> Usado</label>
+      </div>
 
-            <!-- Producto 2 -->
-            <article class="product-card">
-                <img src="https://images.unsplash.com/photo-1556821840-3a63f95609a7?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=60" alt="Polerón" class="product-image">
-                <div class="product-info">
-                    <div class="brand">Stüssy</div>
-                    <h2 class="product-title">Basic Logo Hoodie</h2>
-                    <div class="product-meta">
-                        <span>Talla: L</span>
-                        <span>Nuevo</span>
-                    </div>
-                    <div class="price">$85.000</div>
-                </div>
-            </article>
+      <button class="btn block" id="apply">Aplicar Filtros</button>
+      <button class="link-btn" id="clear" style="margin-top:10px;display:block;">Limpiar filtros</button>
+    </aside>
 
-            <!-- Producto 3 -->
-            <article class="product-card">
-                <img src="https://images.unsplash.com/photo-1608231387042-66d1773070a5?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=60" alt="Zapatilla" class="product-image">
-                <div class="product-info">
-                    <div class="brand">Jordan</div>
-                    <h2 class="product-title">Air Jordan 1 Retro High</h2>
-                    <div class="product-meta">
-                        <span>Talla: US 9.5</span>
-                        <span>Usado</span>
-                    </div>
-                    <div class="price">$190.000</div>
-                </div>
-            </article>
+    <section>
+      <div class="toolbar">
+        <span id="count" class="muted"></span>
+        <select id="sort">
+          <option value="">Ordenar: Relevancia</option>
+          <option value="asc">Precio: menor a mayor</option>
+          <option value="desc">Precio: mayor a menor</option>
+        </select>
+      </div>
+      <main class="catalog-grid" id="grid"></main>
+    </section>
+  </div>
 
-            <!-- Producto 4 -->
-            <article class="product-card">
-                <img src="https://images.unsplash.com/photo-1588850561407-ed78c282e89b?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=60" alt="Gorro" class="product-image">
-                <div class="product-info">
-                    <div class="brand">Supreme</div>
-                    <h2 class="product-title">Camp Cap Black</h2>
-                    <div class="product-meta">
-                        <span>Talla: Única</span>
-                        <span>Nuevo</span>
-                    </div>
-                    <div class="price">$65.000</div>
-                </div>
-            </article>
+  <script src="data.js"></script>
+  <script>
+    renderHeader('catalogo');
 
-        </main>
-    </div>
+    const $ = (id) => document.getElementById(id);
+    const q = (new URLSearchParams(location.search).get('q') || '').toLowerCase();
+    if (q) document.querySelector('.search-bar input').value = q;
 
+    const minR = $('range-min'), maxR = $('range-max'), minI = $('input-min'), maxI = $('input-max'), bar = $('range-color');
+    const MAX = 250000;
+
+    function syncBar() {
+      bar.style.left = (minR.value / MAX * 100) + '%';
+      bar.style.right = (100 - maxR.value / MAX * 100) + '%';
+    }
+    function fromRange(changed) {
+      if (+minR.value > +maxR.value) { if (changed === 'min') minR.value = maxR.value; else maxR.value = minR.value; }
+      minI.value = minR.value; maxI.value = maxR.value; syncBar();
+    }
+    function fromInput() {
+      minR.value = Math.min(+minI.value || 0, +maxI.value || MAX);
+      maxR.value = Math.max(+maxI.value || 0, +minI.value || 0);
+      syncBar();
+    }
+    minR.addEventListener('input', () => fromRange('min'));
+    maxR.addEventListener('input', () => fromRange('max'));
+    minI.addEventListener('change', fromInput);
+    maxI.addEventListener('change', fromInput);
+
+    function checked(sel) { return [...document.querySelectorAll(sel + ' input:checked')].map(i => i.value); }
+
+    function render() {
+      const cats = checked('#f-cat');
+      const sizes = checked('#f-size');
+      const brands = checked('#f-brand');
+      const cond = document.querySelector('input[name=estado]:checked').value;
+      const lo = +minR.value, hi = +maxR.value;
+
+      if (cats.length === 0) {
+        $('count').textContent = '0 artículos';
+        $('grid').innerHTML = '<div class="empty" style="color: var(--danger); border-color: var(--danger);">⚠ Selecciona al menos una Categoría (Filtro Obligatorio) para ver los resultados.</div>';
+        return; 
+      }
+
+      let list = PRODUCTS.filter(p =>
+        p.price >= lo && p.price <= hi &&
+        cats.includes(p.cat) &&
+        (!sizes.length || sizes.includes(p.sizeGroup)) &&
+        (!brands.length || brands.includes(p.brand)) &&
+        (!cond || p.cond === cond) &&
+        (!q || (p.title + ' ' + p.brand + ' ' + p.cat).toLowerCase().includes(q))
+      );
+      
+      const s = $('sort').value;
+      if (s) list.sort((a, b) => s === 'asc' ? a.price - b.price : b.price - a.price);
+      
+      $('count').textContent = list.length + (list.length === 1 ? ' artículo' : ' artículos');
+      $('grid').innerHTML = list.length ? list.map(productCard).join('') : '<div class="empty">No encontramos artículos con esos filtros.</div>';
+    }
+
+    $('apply').addEventListener('click', render);
+    $('sort').addEventListener('change', render);
+    $('clear').addEventListener('click', () => {
+      document.querySelectorAll('.sidebar input[type=checkbox]').forEach(c => c.checked = false);
+      document.querySelector('input[name=estado][value=""]').checked = true;
+      document.querySelectorAll('#f-cat input[type=checkbox]').forEach(c => c.checked = true);
+      minR.value = 0; maxR.value = MAX; fromRange(); render();
+    });
+
+    syncBar(); render();
+  </script>
 </body>
 </html>
