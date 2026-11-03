@@ -111,7 +111,7 @@ function renderHeader(active) {
   const authButtons = user 
     ? `<a href="perfil.html" class="btn-login">Mi Perfil</a>
        <button onclick="Auth.logout(); window.location.href='catalogo.html';" class="link-btn" style="margin-left:12px; font-weight:bold;">Salir</button>`
-    : `<a href="login.html" class="btn-login">Iniciar Sesión</a>`;
+    : `<a href="login.html" class="btn-login" style="padding: 12px 24px; font-size: 16px;">Iniciar Sesión</a>`;
 
   el.outerHTML = `
   <header class="site-header">

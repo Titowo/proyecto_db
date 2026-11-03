@@ -28,6 +28,7 @@
         <option value="Información engañosa o falsa">Información engañosa o falsa</option>
         <option value="Artículo prohibido o falsificado">Artículo prohibido o falsificado</option>
       </select>
+        <textarea id="report-details" class="modal-textarea" placeholder="Cuentanos brevemente qué sucedió (opcional)..."></textarea>
       <div class="btns">
         <button class="btn secondary" id="r-cancel">Cancelar</button>
         <button class="btn accent" id="r-ok">Enviar Reporte</button>
@@ -119,8 +120,12 @@
     document.getElementById('r-ok').onclick = () => {
       const reason = document.getElementById('report-reason').value;
       if (!reason) return toast('Debes seleccionar un motivo');
-      Moderation.saveReport(p.id, reason);
+
+      Moderation.saveReport(p.id, reason + (detailes ? ' - Detalles: ' + detailes: ''));
+
       document.getElementById('modal-report').classList.remove('open');
+      document.getElementById('report-reason').value = '';
+      document.getElementById('report-details').value = '';
       toast('Reporte enviado a moderación');
     };
 

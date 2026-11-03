@@ -14,6 +14,12 @@
     <!-- Filtros -->
     <aside class="sidebar">
       <div class="filter-group">
+        <select id="sort">
+          <option value="">Ordenar: Relevancia</option>
+          <option value="asc">Precio: menor a mayor</option>
+          <option value="desc">Precio: mayor a menor</option>
+        </select>
+
         <h3>Rango de Precio</h3>
         <div class="price-inputs">
           <div class="field"><span>Mínimo</span><input type="number" id="input-min" value="0" min="0" max="250000" step="5000"></div>
@@ -64,12 +70,7 @@
 
     <section>
       <div class="toolbar">
-        <span id="count" class="muted"></span>
-        <select id="sort">
-          <option value="">Ordenar: Relevancia</option>
-          <option value="asc">Precio: menor a mayor</option>
-          <option value="desc">Precio: mayor a menor</option>
-        </select>
+        <span id="count" class="muted"></span> 
       </div>
       <main class="catalog-grid" id="grid"></main>
     </section>

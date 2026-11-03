@@ -21,6 +21,7 @@
         <p class="muted" style="font-size:12px;margin-top:8px" id="h-meta"></p>
       </div>
       <button class="btn secondary" id="btn-edit">Editar perfil</button>
+      <button class="btn" id="btn-logout" style="marign-left: 10px; background: var(--danger); color: white; border: none;">Cerrar Sesion</button>
     </div>
 
     <!-- Selector de vista -->
@@ -225,6 +226,11 @@
     document.addEventListener('click', (e) => {
       if (e.target.dataset.del) { PRODUCTS.splice(PRODUCTS.findIndex(p => p.id === +e.target.dataset.del), 1); renderSeller(); toast('Publicación eliminada'); }
     });
+
+    $('btn-logout').onclick = () => {
+      Auth.logout();
+      window.location.href = 'catalogo.html';
+    };
 
     renderHero(); renderBuyer(); renderSeller();
     setView(location.hash === '#seller' ? 'seller' : 'buyer');
