@@ -80,18 +80,9 @@
     <section id="seller-view" style="display:none">
       <div class="stats" id="s-stats"></div>
       <div class="panel">
-        <h3>Mis publicaciones  <a class="btn small accent" href="publicar.html">+ Nueva publicación</a>/h3>
-          <div><label>Marca</label><input id="n-brand" required></div>
-          <div><label>Título</label><input id="n-title" required></div>
-          <div><label>Categoría</label><select id="n-cat"><option>Zapatillas</option><option>Polerones</option><option>Gorros</option></select></div>
-          <div><label>Talla</label><input id="n-size" placeholder="US 9 / M"></div>
-          <div><label>Estado</label><select id="n-cond"><option>Nuevo</option><option>Usado</option></select></div>
-          <div><label>Precio (CLP)</label><input id="n-price" type="number" step="1000" required></div>
-          <div><label>Stock</label><input id="n-stock" type="number" min="1" value="1"></div>
-          <div class="full"><label>Descripción</label><textarea id="n-desc" required placeholder="Describe los detalles del producto..."></textarea></div>
-          <div class="full" style="text-align:right"><button class="btn" type="submit">Publicar</button></div>
-        </form>
+        <h3>Mis publicaciones <a class="btn small accent" href="publicar.html">+ Nueva publicación</a></h3>
         <div id="s-list"></div>
+      </div>
       </div>
       <div class="two-col">
         <div class="panel">
@@ -123,21 +114,24 @@ const DEFAULT = (!me || me.email === DEMO.email) ? DEMO : {
 const PKEY = 'c2c_profile_' + (me ? me.email : 'demo');   // un perfil por cuenta
 let prof = load(PKEY, DEFAULT);
 
-    const ORDERS = [
+        const IS_DEMO = !me || me.email === DEMO.email;          // cuenta de demostración (Diego)
+    const HANDLE = me ? me.username : DEMO.handle;           // @usuario real de la cuenta (no el editable del perfil)
+    const esc = (s) => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    const ORDERS = IS_DEMO ? [
       { id: 3, state: 'En coordinación', date: 'Hoy' },
-      { id: 2, state: 'Entregado', date: '02 oct' },
-      { id: 4, state: 'Entregado', date: '18 sep' }
-    ];
-    const SALES = [
-      { id: 1, buyer: '@JuanComprador', qty: 1, unit: 110000, date: '12 oct' },
-      { id: 4, buyer: '@CataColeccionista', qty: 2, unit: 60000, date: '03 oct' }
-    ];
-    const REVIEWS = [
+      { id: 2, state: 'Entregada', date: '02 oct' },
+      { id: 5, state: 'Entregada', date: '18 sep' }
+    ] : [];
+    const SEED_SALES = IS_DEMO ? [
+      { productId: 1, buyer: '@JuanComprador', qty: 1, unit: 110000, date: '22-9-2026', state: 'Entregada' },
+      { productId: 4, buyer: '@CataColeccionista', qty: 2, unit: 60000, date: '3-10-2026', state: 'Entregada' }
+    ] : [];
+    const SEED_REVIEWS = IS_DEMO ? [
       { who: '@JuanComprador', stars: 5, text: 'Todo perfecto, zapatillas tal cual las fotos y súper puntual en la entrega.' },
       { who: '@MatiStreet', stars: 5, text: 'Muy buena onda, respondió rápido y respetó el precio.' },
       { who: '@NachoKicks', stars: 4, text: 'Buen vendedor, solo se demoró un poco en coordinar.' }
-    ];
-    const stars = (n) => '★'.repeat(n) + '☆'.repeat(5 - n);
+    ] : [];    const stars = (n) => '★'.repeat(n) + '☆'.repeat(5 - n);
 
     function renderHero() {
       $('h-avatar').textContent = (prof.nombre1 || '?')[0].toUpperCase();
@@ -154,11 +148,11 @@ let prof = load(PKEY, DEFAULT);
         [ORDERS.length, 'Compras'], [Store.favs().length, 'Favoritos'], [carts.size, 'Carritos activos'], ['4.8 ★', 'Reputación como comprador']
       ].map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join('');
 
-      $('b-orders').innerHTML = ORDERS.map(o => { const p = getProduct(o.id); return `
+      $('b-orders').innerHTML = ORDERS.length ? ORDERS.map(o => { const p = getProduct(o.id); return `
         <div class="list-row"><img src="${p.img}" alt=""><div><h4>${p.brand} ${p.title}</h4><div class="sub">${p.seller} · ${o.date}</div></div>
-        <div class="end"><div class="price">${fmt(p.price)}</div><span class="tag ${o.state === 'Entregado' ? 'ok' : ''}">${o.state}</span></div></div>`; }).join('');
+        <div class="end"><div class="price">${fmt(p.price)}</div><span class="tag ${o.state === 'Entregada' ? 'ok' : ''}">${o.state}</span></div></div>`; }).join('')
+        : '<div class="body muted">Aún no tienes compras.</div>';      const favs = Store.favs().map(getProduct).filter(Boolean);
 
-      const favs = Store.favs().map(getProduct).filter(Boolean);
       $('b-favs').innerHTML = favs.length ? favs.map(p => `
         <div class="list-row"><img src="${p.img}" alt=""><div><h4><a href="producto.html?id=${p.id}">${p.title}</a></h4><div class="sub">${p.seller}</div></div><div class="end price">${fmt(p.price)}</div></div>`).join('')
         : '<div class="body muted">Sin favoritos aún.</div>';
@@ -172,31 +166,53 @@ let prof = load(PKEY, DEFAULT);
         : '<div class="body muted">No tienes carritos activos.</div>';
     }
 
+        function mySales() {
+      const mine = SalesStore.all().filter(s => s.seller === HANDLE).reverse();   // las más nuevas primero
+      return [...mine, ...SEED_SALES];
+    }
+    function myReviews() {
+      const mine = load('c2c_reviews', []).filter(r => r.seller === HANDLE).reverse()
+        .map(r => ({ who: r.reviewer || 'Anónimo', stars: r.stars, text: r.comment || 'Sin comentario.' }));
+      return [...mine, ...SEED_REVIEWS];
+    }
+
     function renderSeller() {
-      const items = myItems();
-      const total = SALES.reduce((a, s) => a + s.qty * s.unit, 0);
+      const items = PRODUCTS.filter(p => p.seller === HANDLE);
+      const sales = mySales(), reviews = myReviews();
+      const total = sales.reduce((a, s) => a + s.qty * s.unit, 0);
+      const rating = IS_DEMO ? SELLERS[HANDLE].rating
+        : (reviews.length ? (reviews.reduce((a, r) => a + r.stars, 0) / reviews.length).toFixed(1) : '—');
+
       $('s-stats').innerHTML = [
-        [items.length, 'Publicaciones activas'], [items.reduce((a, p) => a + p.stock, 0), 'Unidades en stock'],
-        [SALES.length + 35, 'Ventas totales'], [fmt(total), 'Vendido este mes'], [(SELLERS[prof.handle] || { rating: '5.0' }).rating + ' ★', 'Valoración']
+        [items.filter(p => p.stock > 0).length, 'Publicaciones activas'],
+        [items.reduce((a, p) => a + p.stock, 0), 'Unidades en stock'],
+        [sales.length + (IS_DEMO ? 35 : 0), 'Ventas totales'],
+        [fmt(total), 'Total vendido'],
+        [rating === '—' ? '—' : rating + ' ★', 'Valoración']
       ].map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join('');
 
       $('s-list').innerHTML = items.length ? items.map(p => `
         <div class="list-row" style="grid-template-columns:64px 1fr auto">
           <a href="producto.html?id=${p.id}"><img src="${p.img}" alt=""></a>
-          <div><h4>${p.brand} ${p.title}</h4><div class="sub">Talla ${p.size} · ${p.cond}</div>
+          <div><h4>${esc(p.brand)} ${esc(p.title)}</h4><div class="sub">Talla ${esc(p.size)} · ${p.cond}</div>
             <div class="sub" style="margin-top:6px"><label>Precio <input class="inline-in" type="number" step="1000" value="${p.price}" data-price="${p.id}" style="width:100px"></label>
             &nbsp;<label>Stock <input class="inline-in" type="number" min="0" value="${p.stock}" data-stock="${p.id}" style="width:60px"></label></div></div>
           <div class="end"><span class="tag ${p.stock > 0 ? 'ok' : ''}">${p.stock > 0 ? 'Activa' : 'Agotada'}</span><br>
             <button class="link-btn" data-del="${p.id}" style="margin-top:8px">Eliminar</button></div>
-        </div>`).join('') : '<div class="body muted">No tienes publicaciones. Crea la primera.</div>';
+        </div>`).join('')
+        : '<div class="body muted">No tienes publicaciones. <a href="publicar.html" style="text-decoration:underline;font-weight:bold">Crea la primera</a>.</div>';
 
-      $('s-sales').innerHTML = SALES.map(s => { const p = getProduct(s.id); return `
-        <div class="list-row"><img src="${p.img}" alt=""><div><h4>${p.brand} ${p.title}</h4><div class="sub">${s.buyer} · ${s.date}</div></div>
-        <div class="end"><div class="price">${fmt(s.qty * s.unit)}</div><div class="sub">${s.qty} × ${fmt(s.unit)}</div></div></div>`; }).join('');
+      $('s-sales').innerHTML = sales.length ? sales.map(s => {
+        const p = getProduct(s.productId); if (!p) return '';
+        return `<div class="list-row"><img src="${p.img}" alt=""><div><h4>${esc(p.brand)} ${esc(p.title)}</h4><div class="sub">${esc(s.buyer)} · ${esc(s.date)}</div></div>
+          <div class="end"><div class="price">${fmt(s.qty * s.unit)}</div><div class="sub">${s.qty} × ${fmt(s.unit)}</div>
+          <span class="tag ${s.state === 'Entregada' ? 'ok' : ''}">${s.state}</span></div></div>`;
+      }).join('') : '<div class="body muted">Aún no registras ventas.</div>';
 
-      $('s-reviews').innerHTML = REVIEWS.map(r => `<div class="review"><div class="who">${r.who} · <span class="stars">${stars(r.stars)}</span></div>${r.text}</div>`).join('');
+      $('s-reviews').innerHTML = reviews.length ? reviews.map(r =>
+        `<div class="review"><div class="who">${esc(r.who)} · <span class="stars">${stars(r.stars)}</span></div>${esc(r.text)}</div>`).join('')
+        : '<div class="body muted">Aún no tienes valoraciones.</div>';
     }
-
     function setView(v) {
       $('buyer-view').style.display = v === 'buyer' ? '' : 'none';
       $('seller-view').style.display = v === 'seller' ? '' : 'none';

@@ -52,8 +52,15 @@
       <div class="gallery">
         <img class="main" id="main-img" src="${p.imgs[0]}" alt="${p.title}">
         <div class="thumbs">${p.imgs.map((u, i) => `<img src="${u}" class="${i === 0 ? 'sel' : ''}" data-i="${i}" alt="Foto ${i + 1}">`).join('')}</div>
-      </div>
+        <div class="slider" id="slider">${p.imgs.map((u, i) => `<img src="${u}" alt="Foto ${i + 1}">`).join('')}</div>
+        <div class="dots" id="dots">${p.imgs.map((_, i) => `<span class="${i === 0 ? 'on' : ''}"></span>`).join('')}</div>
 
+      </div>
+      <div class="buybar">
+          <div class="bb-price">${fmt(p.price)}</div>
+          <button class="btn accent" id="add2">Agregar al carrito</button>
+          <a class="btn secondary" href="chat.html?id=${p.id}">Negociar</a>
+      </div>
       <div class="pdp-info">
         <div class="brand">${p.brand}</div>
         <h1>${p.title}</h1>
@@ -104,10 +111,12 @@
     const q = document.getElementById('qty');
     document.getElementById('minus').onclick = () => { qty = Math.max(1, qty - 1); q.textContent = qty; };
     document.getElementById('plus').onclick = () => { qty = Math.min(p.stock, qty + 1); q.textContent = qty; };
-    document.getElementById('add').onclick = () => {
+        const addToCart = () => {
       if (!Auth.require('Inicia sesión para agregar al carrito')) return;
       Store.addToCart(p.id, qty); toast('Agregado al carrito de ' + p.seller);
     };
+    document.getElementById('add').onclick = addToCart;
+    document.getElementById('add2').onclick = addToCart;
 
     document.getElementById('fav').onclick = (e) => {
         if (!Auth.require('Inicia sesión para guardar favoritos')) return;
@@ -136,6 +145,11 @@
 
     const rel = PRODUCTS.filter(x => x.id !== p.id).sort((a, b) => (b.seller === p.seller) - (a.seller === p.seller));
     document.getElementById('related').innerHTML = rel.map(productCard).join('');
+        const slider = document.getElementById('slider');
+    slider.addEventListener('scroll', () => {
+      const i = Math.round(slider.scrollLeft / slider.clientWidth);
+      document.querySelectorAll('#dots span').forEach((d, k) => d.classList.toggle('on', k === i));
+    });
   </script>
 </body>
 </html>

@@ -13,6 +13,7 @@
   <div class="container">
     <!-- Filtros -->
     <aside class="sidebar">
+      <div class="sheet-head"><b>Filtros</b><button type="button" class="link-btn" id="close-filters">✕ Cerrar</button></div>
       <div class="filter-group">
         <h3>Ordenar por</h3>
         <select id="sort">
@@ -74,7 +75,8 @@
 
     <section>
       <div class="toolbar">
-        <span id="count" class="muted"></span> 
+        <span id="count" class="muted"></span>
+        <button type="button" class="btn small secondary filters-btn" id="open-filters">☰ Filtros</button>
       </div>
       <main class="catalog-grid" id="grid"></main>
     </section>
@@ -140,7 +142,14 @@
       $('grid').innerHTML = list.length ? list.map(productCard).join('') : '<div class="empty">No encontramos artículos con esos filtros.</div>';
     }
 
-    $('apply').addEventListener('click', render);
+    const sheet = document.querySelector('.sidebar');
+    const openSheet = () => { sheet.classList.add('open'); document.body.style.overflow = 'hidden'; };
+    const closeSheet = () => { sheet.classList.remove('open'); document.body.style.overflow = ''; };
+    $('open-filters').addEventListener('click', openSheet);
+    $('close-filters').addEventListener('click', closeSheet);
+    $('apply').addEventListener('click', () => { render(); closeSheet(); });
+    window.addEventListener('resize', () => { if (innerWidth > 900) closeSheet(); });
+
     $('sort').addEventListener('change', render);
     $('clear').addEventListener('click', () => {
       document.querySelectorAll('.sidebar input[type=checkbox]').forEach(c => c.checked = false);

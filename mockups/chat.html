@@ -251,6 +251,8 @@
       // 409: stock insuficiente (equivale al ROLLBACK: no se descuenta nada ni se registra la venta)
       if (q > t.stock)
         return addError(`Error: stock insuficiente. Stock disponible: ${t.stock}. No se registró la venta.`);
+            SalesStore.add({ productId: pr().id, seller: pr().seller, buyer: t.buyer, qty: q, unit: u,
+                       date: new Date().toLocaleDateString('es-CL'), state: 'En coordinación' });
       t.stock -= q; t.status = 'vendido'; t.agreed = u;
       t.msgs.push({ system: true, time: now(), text: `✓ Venta confirmada: ${q} × ${fmt(u)} = <b>${fmt(q * u)}</b>. Stock restante: ${t.stock}.` });
       toast('Venta registrada y stock actualizado');

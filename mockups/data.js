@@ -156,11 +156,15 @@ const Moderation = {
   },
   saveReview(seller, stars, comment) {
     const revs = load('c2c_reviews', []);
-    revs.push({ id: Date.now(), seller, stars, comment, date: new Date().toLocaleDateString('es-CL') });
+    revs.push({ id: Date.now(), seller, reviewer: (Auth.getUser() || {}).username || 'Anónimo', stars, comment, date: new Date().toLocaleDateString('es-CL') });
     save('c2c_reviews', revs);
   }
 };
-
+/* Ventas confirmadas desde el chat (alimentan el historial del perfil) */
+const SalesStore = {
+  all() { return load('c2c_sales', []); },
+  add(s) { const a = SalesStore.all(); a.push(s); save('c2c_sales', a); }
+};
 /* Carrito: { productId: cantidad } */
 const Store = {
   cart() { return load('c2c_cart', { 1: 1, 4: 1, 2: 1 }); },
@@ -202,7 +206,7 @@ function renderHeader(active) {
           <a href="carrito.html" role="menuitem" class="${cls('carrito')}">Carrito <span class="count" id="badge-cart">0</span></a>
           <a href="chat.html" role="menuitem" class="${cls('chat')}">Mensajes</a>
           <a href="publicar.html" role="menuitem" class="${cls('publicar')}">Publicar artículo</a>
-
+          <a href="#" role="menuitem" class="dd-only-mobile" onclick="Auth.logout(); window.location.href='catalogo.html'; return false;">Cerrar sesión</a>
           ${user.rol === 'admin' ? `<a href="admin.html" role="menuitem" class="${cls('admin')}">Reportes</a>` : ''}
         </div>
       </div>
