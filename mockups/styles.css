@@ -270,6 +270,10 @@ body.chat-body { display: flex; flex-direction: column; height: 100vh; overflow:
 .auth-box input:focus { border-color: var(--primary); outline: none; background: #fff; }
 .switch-auth { text-align: center; font-size: 13px; margin-top: 20px; color: var(--muted); }
 .switch-auth a { color: var(--primary); font-weight: bold; text-decoration: underline; }
+.auth-container { max-width: 520px; }  /* modifica la regla existente (era 420px) */
+.auth-box .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.auth-box label small { text-transform: none; font-weight: normal; color: var(--muted); }
+@media (max-width: 480px) { .auth-box .field-row { grid-template-columns: 1fr; } }
 
 /* ---------- Valoración y Reportes (RF12 y RF13) ---------- */
 .star-rating { display: flex; flex-direction: row-reverse; justify-content: center; gap: 8px; font-size: 34px; margin: 15px 0; }

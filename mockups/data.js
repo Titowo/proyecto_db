@@ -1,5 +1,7 @@
 /* ===== C2C Streetwear — datos y utilidades compartidas (mockup) ===== */
 const U = (id) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=800&q=60`;
+const fullName = (u) =>
+  [u.nombre1, u.nombre2, u.apellido1, u.apellido2].filter(Boolean).join(' ') || u.name || "";
 
 const SELLERS = {
   '@DiegoVendedor':     { initial: 'D', rating: '4.9', sales: 37, zone: 'Santiago Centro' },
@@ -39,30 +41,43 @@ function save(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); 
 const Auth = {
   getUser() { return load('c2c_active_user', null); },
   
-  getDB() { return load('c2c_users_db', { 
-    'test@c2c.cl': { name: 'Diego Fuentes', email: 'test@c2c.cl', pass: '123' } 
-  });},
+  getDB() { return load('c2c_users_db', {
+    'test@c2c.cl': { nombre1: 'Diego', nombre2: '', apellido1: 'Fuentes', apellido2: '',
+                     username: '@DiegoVendedor', email: 'test@c2c.cl', pass: '123', rol: 'usuario' }
+  }); },
 
   login(email, pass) {
+    email = email.trim().toLowerCase();
     const db = Auth.getDB();
-    if (db[email] && db[email].pass === pass) {
-      save('c2c_active_user', db[email]);
-      return true;
-    }
+    if (db[email] && db[email].pass === pass) { save('c2c_active_user', db[email]); return true; }
     return false;
   },
 
-  register(name, email, pass) {
+  register(d) {
     const db = Auth.getDB();
-    if (db[email]) return false; 
-    db[email] = { name, email, pass };
+    const email = d.email.trim().toLowerCase();
+    let username = d.username.trim();
+    if (!username.startsWith('@')) username = '@' + username;
+
+    if (!d.nombre1 || !d.apellido1)
+      return { ok: false, error: 'El primer nombre y el primer apellido son obligatorios' };
+    if (!/^@[A-Za-z0-9_.]{3,29}$/.test(username))
+      return { ok: false, error: '@usuario: de 3 a 29 caracteres (letras, números, _ o .)' };
+    if (db[email])
+      return { ok: false, error: 'Ese correo ya está registrado' };
+    if (Object.values(db).some(u => (u.username || '').toLowerCase() === username.toLowerCase()))
+      return { ok: false, error: 'Ese @usuario ya está en uso' };
+
+    db[email] = { nombre1: d.nombre1, nombre2: d.nombre2, apellido1: d.apellido1, apellido2: d.apellido2,
+                  username, email, pass: d.pass, rol: 'usuario', fecha_registro: new Date().toISOString() };
     save('c2c_users_db', db);
-    save('c2c_active_user', db[email]); 
-    return true;
+    save('c2c_active_user', db[email]);
+    return { ok: true };
   },
 
-  logout() { localStorage.removeItem('c2c_active_user'); }
-};
+
+
+  logout() { localStorage.removeItem('c2c_active_user'); }};
 
 /* ---------- Mockup de Reportes y Valoraciones (RF12 y RF13) ---------- */
 const Moderation = {
