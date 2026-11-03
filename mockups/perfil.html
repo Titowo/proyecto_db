@@ -80,8 +80,7 @@
     <section id="seller-view" style="display:none">
       <div class="stats" id="s-stats"></div>
       <div class="panel">
-        <h3>Mis publicaciones <button class="btn small accent" id="btn-new">+ Nueva publicación</button></h3>
-        <form class="body form-grid" id="new-form" style="display:none;border-bottom:1px solid var(--border)">
+        <h3>Mis publicaciones  <a class="btn small accent" href="publicar.html">+ Nueva publicación</a>/h3>
           <div><label>Marca</label><input id="n-brand" required></div>
           <div><label>Título</label><input id="n-title" required></div>
           <div><label>Categoría</label><select id="n-cat"><option>Zapatillas</option><option>Polerones</option><option>Gorros</option></select></div>
@@ -226,22 +225,13 @@ let prof = load(PKEY, DEFAULT);
           save(PKEY, prof); renderHero(); renderSeller(); $('edit-panel').style.display = 'none'; toast('Perfil actualizado'); 
     };
 
-    $('btn-new').onclick = () => { const f = $('new-form'); f.style.display = f.style.display === 'none' ? '' : 'none'; };
-    $('new-form').onsubmit = (e) => {
-      e.preventDefault();
-      const img = PRODUCTS[Math.floor(Math.random() * PRODUCTS.length)].img;
-      PRODUCTS.push({ id: Math.max(...PRODUCTS.map(p => p.id)) + 1, brand: $('n-brand').value, title: $('n-title').value, cat: $('n-cat').value,
-        size: $('n-size').value || 'Única', sizeGroup: 'Única', cond: $('n-cond').value, price: +$('n-price').value, stock: +$('n-stock').value || 1,
-        seller: prof.handle, img, imgs: [img], desc: $('n-desc').value.trim() });
-      e.target.reset(); e.target.style.display = 'none'; renderSeller(); toast('Publicación creada');
-    };
     document.addEventListener('change', (e) => {
       const t = e.target;
-      if (t.dataset.price) { getProduct(t.dataset.price).price = +t.value; toast('Precio actualizado'); }
-      if (t.dataset.stock) { getProduct(t.dataset.stock).stock = Math.max(0, +t.value); renderSeller(); toast('Stock actualizado'); }
+      if (t.dataset.price) { getProduct(t.dataset.price).price = +t.value; persistUserProducts(); toast('Precio actualizado'); }
+      if (t.dataset.stock) { getProduct(t.dataset.stock).stock = Math.max(0, +t.value); persistUserProducts(); renderSeller(); toast('Stock actualizado'); }
     });
     document.addEventListener('click', (e) => {
-      if (e.target.dataset.del) { PRODUCTS.splice(PRODUCTS.findIndex(p => p.id === +e.target.dataset.del), 1); renderSeller(); toast('Publicación eliminada'); }
+      if (e.target.dataset.del) { PRODUCTS.splice(PRODUCTS.findIndex(p => p.id === +e.target.dataset.del), 1); persistUserProducts(); renderSeller(); toast('Publicación eliminada'); }
     });
 
     $('btn-logout').onclick = () => {

@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Publicar artículo - C2C Streetwear</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="publicar">
+
+  <div id="app-header"></div>
+
+  <div class="page" id="pub-page" style="max-width:900px">
+    <h1>Publicar artículo</h1>
+
+    <div class="panel">
+      <h3>Datos del artículo</h3>
+      <form class="body form-grid" id="pub-form" novalidate>
+        <div>
+          <label for="f-brand">Marca</label>
+          <input id="f-brand" list="brands" maxlength="50" placeholder="Ej: Nike">
+          <datalist id="brands"><option value="Nike"><option value="Jordan"><option value="Stüssy"><option value="Supreme"></datalist>
+        </div>
+        <div>
+          <label for="f-title">Nombre del artículo</label>
+          <input id="f-title" maxlength="100" placeholder='Ej: Dunk Low "Panda"'>
+        </div>
+        <div class="full">
+          <label for="f-desc">Descripción</label>
+          <textarea id="f-desc" placeholder="Describe el estado, uso, accesorios incluidos..."></textarea>
+        </div>
+        <div>
+          <label for="f-price">Precio (CLP)</label>
+          <input id="f-price" type="number" min="1" step="1000" placeholder="120000">
+        </div>
+        <div>
+          <label for="f-stock">Stock</label>
+          <input id="f-stock" type="number" min="1" step="1" value="1">
+        </div>
+        <div>
+          <label for="f-cat">Categoría</label>
+          <select id="f-cat"><option>Zapatillas</option><option>Polerones</option><option>Gorros</option></select>
+        </div>
+        <div>
+          <label for="f-size">Talla</label>
+          <select id="f-size">
+            <option value="S">US 8 / S</option>
+            <option value="M">US 9 / M</option>
+            <option value="L" selected>US 10 / L</option>
+            <option value="Única">Talla única</option>
+          </select>
+        </div>
+        <div class="full">
+          <label for="f-cond">Estado</label>
+          <select id="f-cond"><option>Nuevo</option><option>Usado</option></select>
+        </div>
+
+        <div class="full">
+          <label>Fotos (hasta 10 · JPG, PNG o WebP · máx. 5 MB c/u)</label>
+          <label class="photo-drop" for="f-files">+ Agregar fotos <b id="photo-count">0/10</b></label>
+          <input id="f-files" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden>
+          <div class="photo-grid" id="photos"></div>
+          <p class="muted" style="font-size:12px;margin-top:8px">Marca cuál será la foto principal: es la que se ve en el catálogo.</p>
+        </div>
+
+        <div class="full form-error" id="form-error" role="alert" style="display:none"></div>
+
+        <div class="full" style="display:flex;gap:10px;justify-content:flex-end">
+          <a class="btn secondary" href="perfil.html#seller">Cancelar</a>
+          <button type="submit" class="btn accent">Publicar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="data.js"></script>
+  <script>
+    const ok = Auth.require('Inicia sesión para publicar un artículo');
+    renderHeader('publicar');
+    const $ = (id) => document.getElementById(id);
+
+    if (!ok) {
+      $('pub-page').style.display = 'none';
+    } else {
+      const MAX_PHOTOS = 10, MAX_BYTES = 5 * 1024 * 1024, TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+      let photos = [];   // data URLs reducidas
+      let mainIdx = 0;
+
+      const showError = (list) => {
+        const box = $('form-error');
+        box.innerHTML = list.map(t => '• ' + t).join('<br>');
+        box.style.display = list.length ? '' : 'none';
+      };
+
+      /* Reduce la foto a 800 px para que quepa en localStorage */
+      function shrink(file) {
+        return new Promise((resolve, reject) => {
+          const fr = new FileReader();
+          fr.onload = () => {
+            const img = new Image();
+            img.onload = () => {
+              const k = Math.min(1, 800 / Math.max(img.width, img.height));
+              const c = document.createElement('canvas');
+              c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+              const ctx = c.getContext('2d');
+              ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+              ctx.drawImage(img, 0, 0, c.width, c.height);
+              resolve(c.toDataURL('image/jpeg', 0.75));
+            };
+            img.onerror = reject; img.src = fr.result;
+          };
+          fr.onerror = reject; fr.readAsDataURL(file);
+        });
+      }
+
+      function renderPhotos() {
+        $('photos').innerHTML = photos.map((src, i) => `
+          <div class="photo-item ${i === mainIdx ? 'main' : ''}">
+            <img src="${src}" alt="Foto ${i + 1}">
+            <label><input type="radio" name="main" value="${i}" ${i === mainIdx ? 'checked' : ''}> Principal</label>
+            <button type="button" class="link-btn" data-rm="${i}">Quitar</button>
+          </div>`).join('');
+        $('photo-count').textContent = photos.length + '/' + MAX_PHOTOS;
+      }
+
+      $('f-files').addEventListener('change', async (e) => {
+        const errors = [];
+        for (const f of e.target.files) {
+          if (photos.length >= MAX_PHOTOS) { errors.push('Máximo ' + MAX_PHOTOS + ' fotos.'); break; }
+          if (!TYPES.includes(f.type)) { errors.push(f.name + ': formato no permitido (usa JPG, PNG o WebP).'); continue; }
+          if (f.size > MAX_BYTES) { errors.push(f.name + ': supera los 5 MB.'); continue; }
+          try { photos.push(await shrink(f)); } catch (err) { errors.push(f.name + ': no se pudo leer la imagen.'); }
+        }
+        e.target.value = '';
+        showError(errors); renderPhotos();
+      });
+
+      $('photos').addEventListener('change', (e) => {
+        if (e.target.name === 'main') { mainIdx = Number(e.target.value); renderPhotos(); }
+      });
+      $('photos').addEventListener('click', (e) => {
+        if (e.target.dataset.rm === undefined) return;
+        const i = Number(e.target.dataset.rm);
+        photos.splice(i, 1);
+        if (mainIdx === i) mainIdx = 0; else if (mainIdx > i) mainIdx--;
+        renderPhotos();
+      });
+
+      $('pub-form').onsubmit = (e) => {
+        e.preventDefault();
+        const user = Auth.getUser();
+        const brand = $('f-brand').value.trim(), title = $('f-title').value.trim(), desc = $('f-desc').value.trim();
+        const price = Number($('f-price').value), stock = Number($('f-stock').value);
+
+        const errors = [];
+        if (!brand) errors.push('La marca es obligatoria.');
+        if (!title) errors.push('El nombre del artículo es obligatorio.');
+        if (!desc) errors.push('La descripción es obligatoria.');
+        if (!(price > 0)) errors.push('El precio debe ser mayor a 0.');
+        if (!Number.isInteger(stock) || stock < 1) errors.push('El stock debe ser un entero mayor o igual a 1.');
+        if (!photos.length) errors.push('Agrega al menos una foto.');
+        if (errors.length) return showError(errors);
+        showError([]);
+
+        const opt = $('f-size').selectedOptions[0];
+        const main = photos[mainIdx];
+        ensureSeller(user.username);
+        const p = {
+          id: Math.max(...PRODUCTS.map(x => x.id)) + 1, brand, title, cat: $('f-cat').value,
+          size: opt.textContent, sizeGroup: opt.value, cond: $('f-cond').value, price, stock,
+          seller: user.username, img: main, imgs: [main, ...photos.filter((_, i) => i !== mainIdx)],
+          desc, user: true
+        };
+        PRODUCTS.push(p);
+        if (!persistUserProducts()) {
+          PRODUCTS.pop();
+          return showError(['No se pudo guardar: las fotos ocupan demasiado espacio. Usa menos fotos o más livianas.']);
+        }
+        toast('Publicación creada');
+        setTimeout(() => { location.href = 'producto.html?id=' + p.id; }, 800);
+      };
+    }
+  </script>
+</body>
+</html>

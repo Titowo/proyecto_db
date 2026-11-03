@@ -166,15 +166,15 @@
         };
         return;
       }
-      if (role === 'seller') {
+        if (role === 'seller') {
         const price = t.agreed || p.price;
         panel.innerHTML = `
           <label>Cant. acordada:</label>
-          <input type="number" id="p-qty" value="${Math.min(qtyAgreed, t.stock)}" min="1" max="${t.stock}" title="Cantidad a descontar del stock">
+          <input type="number" id="p-qty" value="${qtyAgreed}" min="1" step="1" title="Cantidad a descontar del stock">
           <label>Precio c/u:</label>
           <input type="number" id="p-price" value="${price}" step="1000" style="width:100px">
-          <button class="btn small" id="p-sell">Marcar como Vendido</button>`;
-        $('p-qty').oninput = (e) => { qtyAgreed = Math.max(1, Math.min(t.stock, +e.target.value || 1)); };
+          <button class="btn small accent" id="p-sell">Marcar como Vendido</button>`;
+        $('p-qty').oninput = (e) => { qtyAgreed = Math.max(1, Math.floor(+e.target.value) || 1); };
         $('p-sell').onclick = openModal;
       } else {
         panel.innerHTML = `
@@ -192,7 +192,7 @@
     function renderMsgs() {
       const t = th();
       $('msgs').innerHTML = t.msgs.map((m, i) => {
-        if (m.system) return `<div class="message msg-system">${m.text}<span class="time">${m.time}</span></div>`;
+        if (m.system) return `<div class="message msg-system ${m.error ? 'msg-error' : ''}" ${m.error ? 'role="alert"' : ''}>${m.text}<span class="time">${m.time}</span></div>`;
         const mine = m.from === role;
         if (m.offer) {
           const st = { pending: 'Pendiente de respuesta', accepted: '✓ Oferta aceptada', rejected: 'Oferta rechazada' }[m.state];
@@ -225,9 +225,20 @@
     }
 
     /* Modal Venta */
+        /* Error visible dentro de la conversación (el chat no se cierra) */
+    function addError(text) {
+      th().msgs.push({ system: true, error: true, time: now(), text });
+      renderMsgs();
+      toast('No se pudo registrar la venta');
+    }
+
+    /* Modal Venta */
     function openModal() {
       const t = th(), p = pr();
-      const q = Math.max(1, Math.min(t.stock, +$('p-qty').value || 1)), u = +$('p-price').value || p.price;
+      const q = Number($('p-qty').value), u = Number($('p-price').value);
+      // 400: datos inválidos (se rechaza antes de abrir la confirmación)
+      if (!Number.isInteger(q) || q < 1 || !(u > 0))
+        return addError('Error: datos inválidos. La cantidad debe ser un entero mayor o igual a 1 y el precio mayor a 0. No se registró la venta.');
       $('m-title').textContent = p.brand + ' ' + p.title; $('m-buyer').textContent = t.buyer;
       $('m-qty').textContent = q; $('m-unit').textContent = fmt(u); $('m-total').textContent = fmt(q * u);
       $('modal').dataset.q = q; $('modal').dataset.u = u;
@@ -236,13 +247,15 @@
     $('m-cancel').onclick = () => $('modal').classList.remove('open');
     $('m-ok').onclick = () => {
       const t = th(), q = +$('modal').dataset.q, u = +$('modal').dataset.u;
+      $('modal').classList.remove('open');
+      // 409: stock insuficiente (equivale al ROLLBACK: no se descuenta nada ni se registra la venta)
+      if (q > t.stock)
+        return addError(`Error: stock insuficiente. Stock disponible: ${t.stock}. No se registró la venta.`);
       t.stock -= q; t.status = 'vendido'; t.agreed = u;
       t.msgs.push({ system: true, time: now(), text: `✓ Venta confirmada: ${q} × ${fmt(u)} = <b>${fmt(q * u)}</b>. Stock restante: ${t.stock}.` });
-      $('modal').classList.remove('open');
       toast('Venta registrada y stock actualizado');
       renderAll();
-    };
-    
+    };    
     /* Modal Calificar */
     $('rate-cancel').onclick = () => {
       $('modal-rate').classList.remove('open');

@@ -54,7 +54,15 @@ function load(key, fallback) {
   try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; }
 }
 function save(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} }
-
+/* ---------- Artículos publicados por usuarios (persisten en localStorage) ---------- */
+function ensureSeller(handle) {
+  if (!SELLERS[handle]) SELLERS[handle] = { initial: handle.replace('@', '')[0].toUpperCase(), rating: '5.0', sales: 0, zone: 'Santiago' };
+}
+function persistUserProducts() {
+  try { localStorage.setItem('c2c_user_products', JSON.stringify(PRODUCTS.filter(p => p.user))); return true; }
+  catch (e) { return false; }
+}
+load('c2c_user_products', []).forEach(p => { ensureSeller(p.seller); PRODUCTS.push(p); });
 /* ---------- Mockup de Autenticación (RF1 y RF2) ---------- */
 const Auth = {
   getUser() { return load('c2c_active_user', null); },
@@ -188,11 +196,13 @@ function renderHeader(active) {
 
   const userNav = user ? `
       <div class="dropdown" id="menu-dd">
-        <button type="button" class="dd-btn ${cls('favoritos', 'carrito', 'chat', 'admin')}" id="menu-btn" aria-haspopup="true" aria-expanded="false">Menú ▾<span class="badge" id="badge-menu">0</span></button>
+        <button type="button" class="dd-btn ${cls('favoritos', 'carrito', 'chat', 'publicar', 'admin')}" id="menu-btn" aria-haspopup="true" aria-expanded="false">Menú ▾<span class="badge" id="badge-menu">0</span></button>
         <div class="dd-menu" id="menu-list" role="menu">
           <a href="carrito.html#favoritos" role="menuitem" class="${cls('favoritos')}">♡ Favoritos <span class="count" id="badge-fav">0</span></a>
           <a href="carrito.html" role="menuitem" class="${cls('carrito')}">Carrito <span class="count" id="badge-cart">0</span></a>
           <a href="chat.html" role="menuitem" class="${cls('chat')}">Mensajes</a>
+          <a href="publicar.html" role="menuitem" class="${cls('publicar')}">Publicar artículo</a>
+
           ${user.rol === 'admin' ? `<a href="admin.html" role="menuitem" class="${cls('admin')}">Reportes</a>` : ''}
         </div>
       </div>
