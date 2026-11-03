@@ -1,89 +1,161 @@
-from django.shortcuts import render
-from .models import Articulo
-from bson import ObjectId
-from bson.errors import InvalidId
+from django.shortcuts import get_object_or_404, render
+from .models import Articulo, Categoria, Usuario, Chat, UsuarioRef, CategoriaRef, FotoArticulo
 
 def catalogo(request):
-    query = {'estado_publicacion__ne': 'Vendido'}
-    mensaje = None
-    articulos = []
-
-    # =====================================================================
-    # 1. OBTENER CATEGORÍAS DIRECTO CON PYMONGO (Infalible)
-    # =====================================================================
-    pipeline = [
-        {"$match": {"estado_publicacion": {"$ne": "Vendido"}}},
-        {"$group": {
-            "_id": "$categoria.id_categoria", 
-            "nombre": {"$first": "$categoria.nombre"}
-        }}
-    ]
+    cat_id = request.GET.get('categoria')
+    precio_max = request.GET.get('max', 300000)
+    busqueda = request.GET.get('q', '')
     
-    # Al usar _get_collection() ignoramos los bugs de MongoEngine y 
-    # conectamos directo con el motor C de MongoDB.
-    coleccion = Articulo._get_collection()
-    categorias_crudas = list(coleccion.aggregate(pipeline))
+    query = {"estado_publicacion": "Disponible"}
+    if cat_id:
+        query["categoria__id_categoria"] = cat_id
+    if precio_max:
+        query["precio__lte"] = float(precio_max)
+    if busqueda:
+        query["nombre__icontains"] = busqueda
+        
+    articulos = Articulo.objects(**query)
+    categorias = Categoria.objects.all()
     
-    categorias = []
-    for cat in categorias_crudas:
-        if cat.get('_id'): 
-            categorias.append({
-                'id_categoria': str(cat['_id']),
-                'id': str(cat['_id']), 
-                'nombre': cat.get('nombre', 'Sin Nombre')
-            })
-
-   
-   # print("\n>>> DEBUG CATEGORIAS EXTRAIDAS:", categorias, "\n")
-
-    # =====================================================================
-    # 2. LÓGICA DE FILTRADO
-    # =====================================================================
-    if request.GET:
-        categoria_id = request.GET.get('categoria')
-        precio_min = request.GET.get('precio_min')
-        precio_max = request.GET.get('precio_max')
-
-        if categoria_id and precio_min and precio_max:
-            try:
-                precio_min_float = float(precio_min)
-                precio_max_float = float(precio_max)
-                
-                if precio_min_float > precio_max_float:
-                    mensaje = "El precio mínimo no puede ser mayor al máximo."
-                else:
-                    query['categoria__id_categoria'] = ObjectId(categoria_id)
-                    query['precio__gte'] = precio_min_float
-                    query['precio__lte'] = precio_max_float
-                    
-                    talla = request.GET.get('talla')
-                    marca = request.GET.get('marca')
-                    estado_conservacion = request.GET.get('estado_conservacion')
-                    
-                    if talla:
-                        query['talla'] = talla
-                    if marca:
-                        query['marca'] = marca
-                    if estado_conservacion:
-                        query['estado_conservacion'] = estado_conservacion
-                        
-                    articulos = Articulo.objects(**query)
-                    
-                    if not articulos:
-                        mensaje = "No encontramos artículos que coincidan con estos filtros."
-                        
-            except ValueError:
-                mensaje = "Los precios deben ser numéricos."
-            except InvalidId:
-                articulos = []
-        else:
-            mensaje = "Debes seleccionar una categoría y el rango de precios para filtrar."
-    else:
-        articulos = Articulo.objects(**query)
-
-    context = {
+    return render(request, 'core/catalogo.html', {
         'articulos': articulos,
-        'categorias': categorias,
-        'mensaje': mensaje
-    }
-    return render(request, 'core/catalogo.html', context)
+        'categorias': categorias
+    })
+
+def producto_detalle(request, articulo_id):
+    p = Articulo.objects(id=articulo_id).first()
+    if not p:
+        raise Http404("El artículo no existe")
+    relacionados = Articulo.objects(id__ne=p.id, vendedor__id_usuario=p.vendedor.id_usuario)[:4]
+    return render(request, 'core/producto.html', {'p': p, 'relacionados': relacionados})
+
+
+def chat(request, chat_id=None):
+    # Si no se pasa un id de chat, tomamos el primero de la base de datos como ejemplo
+    if chat_id:
+        chat_actual = Chat.objects(id=chat_id).first()
+    else:
+        chat_actual = Chat.objects().first()
+        
+    # Simulamos el usuario actual logueado (ej. el primer usuario de la BD)
+    usuario_actual = Usuario.objects().first()
+    
+    # Listado de chats donde participa el usuario actual (como comprador o vendedor)
+    chats_usuario = []
+    if usuario_actual:
+        chats_usuario = Chat.objects(
+            __raw__={
+                "$or": [
+                    {"comprador.id_usuario": usuario_actual.id},
+                    {"vendedor.id_usuario": usuario_actual.id}
+                ]
+            }
+        )
+
+    return render(request, 'core/chat.html', {
+        'chat_actual': chat_actual,
+        'chats_usuario': chats_usuario,
+        'usuario_actual': usuario_actual
+    })
+
+def perfil(request):
+    return render(request, 'core/perfil.html')
+
+def publicar(request):
+    if request.method == 'POST':
+        # Obtenemos los datos del formulario HTML
+        nombre = request.POST.get('nombre')
+        descripcion = request.POST.get('descripcion')
+        precio = request.POST.get('precio')
+        stock = request.POST.get('stock', 1)
+        talla = request.POST.get('talla')
+        marca = request.POST.get('marca')
+        estado_conservacion = request.POST.get('estado_conservacion')
+
+        categoria_id = request.POST.get('categoria')
+        url_imagen = request.POST.get('url_imagen', 'https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=600&q=80')
+        
+        # Obtenemos el usuario actual de prueba
+        usuario_actual = Usuario.objects().first()
+        categoria_obj = Categoria.objects(id=categoria_id).first()
+        
+        if usuario_actual and categoria_obj:
+            # Creamos las referencias embebidas requeridas por el modelo
+            vendedor_ref = UsuarioRef(
+                id_usuario=usuario_actual.id,
+                username=usuario_actual.username,
+                nombre1=usuario_actual.nombre1,
+                apellido1=usuario_actual.apellido1,
+                reputacion=usuario_actual.reputacion.como_vendedor.promedio if usuario_actual.reputacion and usuario_actual.reputacion.como_vendedor else None
+            )
+            
+            categoria_ref = CategoriaRef(
+                id_categoria=categoria_obj.id,
+                nombre=categoria_obj.nombre
+            )
+            
+            foto_principal = FotoArticulo(
+                id_foto=1,
+                url_imagen=url_imagen,
+                es_principal=True
+            )
+            
+            # Guardamos el nuevo artículo en MongoDB
+            Articulo(
+                nombre=nombre,
+                descripcion=descripcion,
+                precio=float(precio),
+                stock=int(stock),
+                talla=talla,
+                marca=marca,
+                estado_conservacion=estado_conservacion,
+                estado_publicacion='Disponible',
+                categoria=categoria_ref,
+                vendedor=vendedor_ref,
+                fotos=[foto_principal]
+            ).save()
+            
+            return redirect('catalogo')
+            
+    # Si es GET, cargamos las categorías disponibles en la BD
+    categorias = Categoria.objects.all()
+    return render(request, 'core/publicar.html', {'categorias': categorias})
+
+
+def carrito(request):
+    # Simulamos el usuario actual (puedes adaptarlo luego con tu sesión o token)
+    # Por ahora tomamos al primer usuario de prueba de la base de datos
+    usuario = Usuario.objects().first()
+    
+    grupos_por_vendedor = {}
+    total_general = 0
+    
+    if usuario and usuario.carrito:
+        for item in usuario.carrito:
+            # Buscamos el artículo real en la base de datos usando la referencia
+            articulo = Articulo.objects(id=item.id_articulo).first()
+            if articulo:
+                vendedor_nombre = articulo.vendedor.username
+                if vendedor_nombre not in grupos_por_vendedor:
+                    grupos_por_vendedor[vendedor_nombre] = []
+                
+                subtotal = float(articulo.precio) * item.cantidad
+                total_general += subtotal
+                
+                grupos_por_vendedor[vendedor_nombre].append({
+                    'p': articulo,
+                    'qty': item.cantidad,
+                    'subtotal': subtotal
+                })
+                
+    return render(request, 'core/carrito.html', {
+        'grupos': grupos_por_vendedor,
+        'total_general': total_general
+    })
+
+
+def login_view(request):
+    return render(request, 'core/login.html')
+
+def admin_view(request):
+    return render(request, 'core/admin.html')

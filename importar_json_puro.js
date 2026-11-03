@@ -1,10 +1,7 @@
-// Seleccionamos la base de datos
-use c2c_streetwear_db;
-
 // (Opcional) Limpiar la BD para que quede exactamente con estos documentos
 db.dropDatabase();
 
-print("Insertando documentos JSON puros en MongoDB...");
+print("Insertando documentos JSON puros compatibles con la Entrega 2 en MongoDB...");
 
 // ==========================================
 // 1. COLECCIÓN: usuarios
@@ -12,46 +9,60 @@ print("Insertando documentos JSON puros en MongoDB...");
 db.usuarios.insertOne(
   {
     "_id": ObjectId("66fa70000000000000000001"),
-    "nombre_completo": "Carlos González",
-    "nombre_usuario": "carlos_streetwear",
-    "email": "carlos.gonzalez@correo.cl",
-    "password_hash": "$2b$12$e8YkZl2.oPqLmNxWvTyUu.K8jGhF5sR2tY7uI9oP0qLaBcDeFgHiJ",
+    "username": "@JuanComprador",
+    "nombre1": "Juan",
+    "nombre2": "Andres",
+    "apellido1": "Perez",
+    "apellido2": "Soto",
+    "correo": "juan.perez@email.com",
+    "contrasena": "$2b$12$e8YkZl2.oPqLmNxWvTyUu.K8jGhF5sR2tY7uI9oP0qLaBcDeFgHiJ",
     "telefono": "+56912345678",
-    "direccion": {
-      "calle": "Av. España 1680",
-      "comuna": "Valparaíso",
-      "region": "Valparaíso"
-    },
+    "bio": "Coleccionista de zapatillas. Compro y vendo en Santiago.",
+    "ubicacion": "Santiago Centro",
+    "rol": "usuario",
     "fecha_registro": ISODate("2026-08-15T10:00:00Z"),
-    "estado_cuenta": "Activo",
+    "foto_perfil": "https://streetwear-c2c.cl/media/perfiles/juan.jpg",
+    "reputacion": {
+      "como_vendedor": { "promedio": null, "cantidad": NumberInt(0) },
+      "como_comprador": { "promedio": NumberDecimal("5.0"), "cantidad": NumberInt(1) }
+    },
+    "numero_ventas": NumberInt(0),
+    "numero_compras": NumberInt(1),
     "carrito": [
       {
-        "id_articulo": ObjectId("66fa81001111111111111101"),
-        "nombre": "Nike Dunk Low Panda",
-        "precio_unitario": NumberDecimal("120000.00"),
-        "cantidad": NumberInt(1),
-        "talla": "US 10",
-        "url_portada": "https://streetwear-c2c.cl/media/articulos/dunk_panda_front.jpg"
+        "id_articulo": ObjectId("66fa81001111111111111103"),
+        "cantidad": NumberInt(1)
       }
     ],
     "favoritos": [
       {
-        "id_articulo": ObjectId("66fa81001111111111111102"),
-        "nombre": "Polerón Stüssy Basic Logo Black",
-        "precio": NumberDecimal("85000.00"),
-        "fecha_agregado": ISODate("2026-09-22T18:15:00Z")
+        "id_articulo": ObjectId("66fa81001111111111111101"),
+        "fecha_agregado": ISODate("2026-09-19T18:15:00Z")
       }
     ]
   }
 );
 
-// Agregamos un usuario vendedor mínimo para mantener la integridad de los ObjectId en las otras colecciones
 db.usuarios.insertOne(
   {
     "_id": ObjectId("66fa70000000000000000002"),
-    "nombre_usuario": "DiegoVendedor",
-    "email": "diego@correo.cl",
-    "estado_cuenta": "Activo"
+    "username": "@DiegoVendedor",
+    "nombre1": "Diego",
+    "apellido1": "Fuentes",
+    "correo": "diego.fuentes@email.com",
+    "contrasena": "$2b$12$Qw3rTyUi0pAsDfGhJkLzXuV1bNm4cVbNmQwErTyUi0pAsDfGhJkL",
+    "bio": "Coleccionista de sneakers y streetwear. Vendo piezas originales.",
+    "ubicacion": "Santiago Centro Entrega en Metro Baquedano",
+    "rol": "usuario",
+    "fecha_registro": ISODate("2026-07-02T09:00:00Z"),
+    "reputacion": {
+      "como_vendedor": { "promedio": NumberDecimal("4.9"), "cantidad": NumberInt(37) },
+      "como_comprador": { "promedio": NumberDecimal("4.8"), "cantidad": NumberInt(3) }
+    },
+    "numero_ventas": NumberInt(37),
+    "numero_compras": NumberInt(3),
+    "carrito": [],
+    "favoritos": []
   }
 );
 
@@ -62,12 +73,12 @@ db.articulos.insertOne(
   {
     "_id": ObjectId("66fa81001111111111111101"),
     "nombre": "Nike Dunk Low Panda",
-    "descripcion": "Zapatillas de cuero originales en su caja de fábrica, completamente nuevas y sin uso.",
+    "descripcion": "Colorway blanco/negro en muy buen estado, usadas 3 veces. Incluye caja original y cordones de repuesto.",
     "precio": NumberDecimal("120000.00"),
-    "stock": NumberInt(2),
+    "stock": NumberInt(1),
     "talla": "US 10",
     "marca": "Nike",
-    "estado_conservacion": "Nuevo",
+    "estado_conservacion": "Usado",
     "estado_publicacion": "Disponible",
     "fecha_publicacion": ISODate("2026-09-20T14:30:00Z"),
     "categoria": {
@@ -76,7 +87,10 @@ db.articulos.insertOne(
     },
     "vendedor": {
       "id_usuario": ObjectId("66fa70000000000000000002"),
-      "nombre_usuario": "DiegoVendedor"
+      "username": "@DiegoVendedor",
+      "nombre1": "Diego",
+      "apellido1": "Fuentes",
+      "reputacion": NumberDecimal("4.9")
     },
     "fotos": [
       {
@@ -99,6 +113,9 @@ db.articulos.insertOne(
 db.chats.insertOne(
   {
     "_id": ObjectId("66fa91001111111111111101"),
+    "fecha_inicio": ISODate("2026-09-21T11:00:00Z"),
+    "estado": "Venta confirmada",
+    "oferta_actual": NumberDecimal("110000.00"),
     "id_articulo": ObjectId("66fa81001111111111111101"),
     "articulo_resumen": {
       "nombre": "Nike Dunk Low Panda",
@@ -107,28 +124,35 @@ db.chats.insertOne(
     },
     "comprador": {
       "id_usuario": ObjectId("66fa70000000000000000001"),
-      "nombre_usuario": "carlos_streetwear"
+      "username": "@JuanComprador",
+      "nombre1": "Juan",
+      "apellido1": "Perez"
     },
     "vendedor": {
       "id_usuario": ObjectId("66fa70000000000000000002"),
-      "nombre_usuario": "DiegoVendedor"
+      "username": "@DiegoVendedor",
+      "nombre1": "Diego",
+      "apellido1": "Fuentes"
     },
-    "estado": "Activo",
-    "fecha_creacion": ISODate("2026-09-21T11:00:00Z"),
+    "total_mensajes": NumberInt(3),
     "mensajes": [
       {
         "id_mensaje": NumberInt(1),
-        "emisor_id": ObjectId("66fa70000000000000000001"),
-        "texto": "Hola Diego, ¿aceptarías $110.000 si coordinamos entrega en metro Miramar?",
-        "fecha_envio": ISODate("2026-09-21T11:02:15Z"),
-        "leido": true
+        "id_usuario": ObjectId("66fa70000000000000000001"),
+        "contenido": "Hola Diego, ¿aceptarías $110.000 si coordinamos entrega en metro Baquedano?",
+        "fecha_envio": ISODate("2026-09-21T11:02:15Z")
       },
       {
         "id_mensaje": NumberInt(2),
-        "emisor_id": ObjectId("66fa70000000000000000002"),
-        "texto": "Hola Carlos. Sí, me sirve cerrar en $110.000. ¿Puedes mañana a las 17:00 hrs?",
-        "fecha_envio": ISODate("2026-09-21T11:05:40Z"),
-        "leido": true
+        "id_usuario": ObjectId("66fa70000000000000000002"),
+        "contenido": "Hola Juan. Sí, me sirve cerrar en $110.000. ¿Puedes mañana a las 17:00 hrs?",
+        "fecha_envio": ISODate("2026-09-21T11:05:40Z")
+      },
+      {
+        "id_mensaje": NumberInt(3),
+        "id_usuario": ObjectId("66fa70000000000000000001"),
+        "contenido": "Perfecto, nos vemos mañana a las 17:00 en Baquedano.",
+        "fecha_envio": ISODate("2026-09-21T11:08:10Z")
       }
     ]
   }
@@ -140,36 +164,50 @@ db.chats.insertOne(
 db.ventas.insertOne(
   {
     "_id": ObjectId("66faa1001111111111111101"),
-    "id_chat_origen": ObjectId("66fa91001111111111111101"),
-    "fecha_venta": ISODate("2026-09-22T17:30:00Z"),
+    "id_chat": ObjectId("66fa91001111111111111101"),
+    "fecha_compra": ISODate("2026-09-22T20:30:00Z"),
+    "estado_venta": "Entregada",
     "total_acordado": NumberDecimal("110000.00"),
-    "metodo_entrega": "Presencial (Metro Miramar)",
-    "estado_transaccion": "Completada",
     "comprador": {
       "id_usuario": ObjectId("66fa70000000000000000001"),
-      "nombre_usuario": "carlos_streetwear",
-      "comuna": "Valparaíso",
-      "region": "Valparaíso"
+      "username": "@JuanComprador",
+      "nombre1": "Juan",
+      "apellido1": "Perez"
     },
     "vendedor": {
       "id_usuario": ObjectId("66fa70000000000000000002"),
-      "nombre_usuario": "DiegoVendedor"
+      "username": "@DiegoVendedor",
+      "nombre1": "Diego",
+      "apellido1": "Fuentes"
     },
     "items": [
       {
+        "id_detalle": NumberInt(1),
         "id_articulo": ObjectId("66fa81001111111111111101"),
-        "nombre_historico": "Nike Dunk Low Panda",
+        "nombre": "Nike Dunk Low Panda",
         "talla": "US 10",
-        "precio_unitario_pactado": NumberDecimal("110000.00"),
-        "cantidad": NumberInt(1),
-        "subtotal": NumberDecimal("110000.00")
+        "cantidad_acordada": NumberInt(1),
+        "precio_unitario": NumberDecimal("110000.00")
       }
     ],
-    "valoracion": {
-      "puntuacion": NumberInt(5),
-      "comentario": "Excelente vendedor, zapatillas 100% originales y entrega puntual.",
-      "fecha_calificacion": ISODate("2026-09-22T19:00:00Z")
-    }
+    "valoraciones": [
+      {
+        "id_valoracion": NumberInt(1),
+        "id_emisor": ObjectId("66fa70000000000000000001"),
+        "id_receptor": ObjectId("66fa70000000000000000002"),
+        "puntuacion": NumberInt(5),
+        "comentario": "Excelente vendedor, zapatillas originales y entrega puntual.",
+        "fecha": ISODate("2026-09-22T22:00:00Z")
+      },
+      {
+        "id_valoracion": NumberInt(2),
+        "id_emisor": ObjectId("66fa70000000000000000002"),
+        "id_receptor": ObjectId("66fa70000000000000000001"),
+        "puntuacion": NumberInt(5),
+        "comentario": "Comprador serio y puntual, trato rápido.",
+        "fecha": ISODate("2026-09-22T22:40:00Z")
+      }
+    ]
   }
 );
 
@@ -180,17 +218,11 @@ db.reportes.insertOne(
   {
     "_id": ObjectId("66fab1001111111111111101"),
     "id_articulo": ObjectId("66fa81001111111111111101"),
-    "id_usuario_denunciante": ObjectId("66fa70000000000000000001"),
-    "motivo": "Posible réplica falsificada",
-    "descripcion_denuncia": "El vendedor afirma que el par es original comprado en tienda oficial, pero la etiqueta interior y el patrón de costura corresponden a una réplica no autorizada.",
-    "estado": "Pendiente",
-    "fecha_reporte": ISODate("2026-09-22T20:15:00Z"),
-    "resolucion": {
-      "revisado_por": null,
-      "fecha_resolucion": null,
-      "accion_tomada": "En espera de revisión"
-    }
+    "id_usuario": ObjectId("66fa70000000000000000001"),
+    "motivo": "Contenido sospechoso o fraude: la etiqueta interior no corresponde a un par original.",
+    "fecha": ISODate("2026-09-23T15:20:00Z"),
+    "estado": "Pendiente"
   }
 );
 
-print("¡JSON inyectados en la base de datos con éxito!");
+print("¡Datos de la Entrega 2 inyectados en la base de datos con éxito!");
