@@ -76,9 +76,12 @@
   <script>
     renderHeader('login');
     const $ = (id) => document.getElementById(id);
+    const nextParam = new URLSearchParams(location.search).get('next') || '';
+    const NEXT = /^[a-z]+\.html([?#].*)?$/i.test(nextParam) ? nextParam : 'catalogo.html';
 
     // Si ya está logueado, mandarlo al catálogo
-    if (Auth.getUser()) window.location.href = 'catalogo.html';
+    if (Auth.getUser()) window.location.href = NEXT;                       // al inicio
+
 
     // Alternar vistas
     $('to-register').onclick = (e) => { e.preventDefault(); $('box-login').style.display = 'none'; $('box-register').style.display = 'block'; };
@@ -90,7 +93,7 @@
       const ok = Auth.login($('l-email').value, $('l-pass').value);
       if (ok) {
         toast('Bienvenido nuevamente');
-        setTimeout(() => window.location.href = 'catalogo.html', 800);
+        setTimeout(() => window.location.href = NEXT, 800); 
       } else {
         toast('Correo o contraseña incorrectos');
       }
@@ -110,7 +113,7 @@
   });
   if (res.ok) {
     toast('Cuenta creada con éxito');
-    setTimeout(() => window.location.href = 'perfil.html', 800);
+    setTimeout(() => window.location.href = 'perfil.html', 800); 
   } else {
     toast(res.error);
   }

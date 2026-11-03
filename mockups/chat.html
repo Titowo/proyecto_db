@@ -89,6 +89,7 @@
 
   <script src="data.js"></script>
   <script>
+    Auth.require('Inicia sesión para ver esta página');
     renderHeader('chat');
     const $ = (id) => document.getElementById(id);
     const params = new URLSearchParams(location.search);

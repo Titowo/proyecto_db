@@ -76,14 +76,23 @@ const Auth = {
   },
 
 
-
+  /* Exige sesión. Si no hay, avisa y manda a login recordando a dónde volver */
+  require(msg = 'Inicia sesión para continuar') {
+    if (Auth.getUser()) return true;
+    toast(msg);
+    const next = location.pathname.split('/').pop() + location.search + location.hash;
+    setTimeout(() => { location.href = 'login.html?next=' + encodeURIComponent(next); }, 900);
+    return false;
+  },
   logout() { localStorage.removeItem('c2c_active_user'); }};
 
 /* ---------- Mockup de Reportes y Valoraciones (RF12 y RF13) ---------- */
 const Moderation = {
-  saveReport(articleId, reason) {
+    saveReport(articleId, reason) {
     const reps = load('c2c_reports', []);
-    reps.push({ id: Date.now(), articleId, reason, date: new Date().toLocaleDateString('es-CL'), status: 'Pendiente' });
+    reps.push({ id: Date.now(), articleId, reason,
+      reporter: (Auth.getUser() || {}).username || 'anónimo',
+      date: new Date().toLocaleDateString('es-CL'), status: 'Pendiente' });
     save('c2c_reports', reps);
   },
   saveReview(seller, stars, comment) {
@@ -173,6 +182,7 @@ document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-fav]');
   if (!b) return;
   e.preventDefault(); e.stopPropagation();
+  if (!Auth.require('Inicia sesión para guardar favoritos')) return;
   const on = Store.toggleFav(b.dataset.fav);
   b.classList.toggle('on', on); b.textContent = on ? '♥' : '♡';
   toast(on ? 'Agregado a favoritos' : 'Quitado de favoritos');

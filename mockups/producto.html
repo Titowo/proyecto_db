@@ -104,13 +104,19 @@
     const q = document.getElementById('qty');
     document.getElementById('minus').onclick = () => { qty = Math.max(1, qty - 1); q.textContent = qty; };
     document.getElementById('plus').onclick = () => { qty = Math.min(p.stock, qty + 1); q.textContent = qty; };
-    document.getElementById('add').onclick = () => { Store.addToCart(p.id, qty); toast('Agregado al carrito de ' + p.seller); };
-    document.getElementById('fav').onclick = (e) => {
-      const on = Store.toggleFav(p.id); e.target.textContent = on ? '♥ En favoritos' : '♡ Guardar en favoritos';
+    document.getElementById('add').onclick = () => {
+      if (!Auth.require('Inicia sesión para agregar al carrito')) return;
+      Store.addToCart(p.id, qty); toast('Agregado al carrito de ' + p.seller);
     };
+
+    document.getElementById('fav').onclick = (e) => {
+        if (!Auth.require('Inicia sesión para guardar favoritos')) return;
+        const on = Store.toggleFav(p.id); e.target.textContent = on ? '♥ En favoritos' : '♡ Guardar en favoritos';
+    };                       // ← aquí ya se cerró la funciónxError
     
     // Lógica del Modal Reportar
     document.getElementById('btn-reportar').onclick = () => {
+      if (!Auth.require('Inicia sesión para reportar')) return;
       document.getElementById('modal-report').classList.add('open');
     };
     document.getElementById('r-cancel').onclick = () => {
@@ -121,9 +127,8 @@
       const reason = document.getElementById('report-reason').value;
       if (!reason) return toast('Debes seleccionar un motivo');
 
-      Moderation.saveReport(p.id, reason + (detailes ? ' - Detalles: ' + detailes: ''));
-
-      document.getElementById('modal-report').classList.remove('open');
+      const details = document.getElementById('report-details').value.trim();
+      Moderation.saveReport(p.id, reason + (details ? ' - Detalles: ' + details : ''));      document.getElementById('modal-report').classList.remove('open');
       document.getElementById('report-reason').value = '';
       document.getElementById('report-details').value = '';
       toast('Reporte enviado a moderación');
