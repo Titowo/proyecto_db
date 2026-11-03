@@ -38,7 +38,10 @@ header.site-header {
   font-size: 10px; min-width: 17px; height: 17px; border-radius: 9px; display: inline-flex;
   align-items: center; justify-content: center; padding: 0 4px;
 }
-.btn-login { background: var(--primary); color: #fff; padding: 8px 16px; font-weight: bold; border-radius: var(--radius); }
+.btn-login { background: var(--primary); color: #fff; padding: 18px 44px; font-size: 16px; font-weight: bold; border-radius: var(--radius); white-space: nowrap; }
+.btn-login:hover { background: #333; }
+.nav-links .link-btn.logout { font-size: 14px; font-weight: bold; color: var(--primary); white-space: nowrap; }
+.nav-links a { white-space: nowrap; }
 
 /* ---------- Botones / tags ---------- */
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 12px 20px;
@@ -60,7 +63,9 @@ header.site-header {
 .breadcrumb a:hover { text-decoration: underline; }
 
 /* ---------- Catálogo ---------- */
-.container { display: grid; grid-template-columns: 260px 1fr; gap: 30px; max-width: 1200px; margin: 30px auto 60px; padding: 0 20px; }
+.container { display: grid; grid-template-columns: 260px 1fr; gap: 30px; max-width: 1600px; margin: 30px auto 60px; padding: 0 20px; }
+.container .catalog-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+.container .product-image { height: 220px; }
 .sidebar { background: #fff; padding: 20px; border: 1px solid var(--border); height: fit-content; position: sticky; top: 90px; }
 .filter-group { margin-bottom: 22px; }
 .filter-group h3 { font-size: 14px; margin-bottom: 10px; text-transform: uppercase; letter-spacing: .5px; }
@@ -284,3 +289,46 @@ body.chat-body { display: flex; flex-direction: column; height: 100vh; overflow:
 .star-rating label:hover ~ label { color: #b8a200; }
 .modal-select, .modal-textarea { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 4px; font-size: 14px; margin-bottom: 15px; background: #fafafa; }
 .modal-textarea { min-height: 80px; resize: vertical; }
+
+
+/* ---------- Admin: reportes (RF15) ---------- */
+.table-wrap { overflow-x: auto; }
+.rep-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.rep-table th { text-align: left; font-size: 12px; text-transform: uppercase; padding: 12px 14px; border-bottom: 2px solid var(--primary); white-space: nowrap; }
+.rep-table td { padding: 12px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.rep-table .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.rep-table .reason { max-width: 320px; line-height: 1.4; }
+.rep-table .acts { white-space: nowrap; }
+.rep-table .empty-cell { text-align: center; color: var(--muted); padding: 40px; }
+.tag.warn { border-color: #b26a00; color: #b26a00; }
+
+
+/* ---------- Menú desplegable (sesión iniciada) ---------- */
+.dropdown { position: relative; }
+.dd-btn { position: relative; background: #fff; color: var(--primary); border: 2px solid var(--primary); border-radius: var(--radius); padding: 9px 16px; font-size: 14px; font-weight: bold; }
+.dd-btn .badge { border: 2px solid #fff; }
+.dd-btn:hover, .dd-btn.active, .dropdown.open .dd-btn { background: var(--primary); color: #fff; }
+.dd-menu { display: none; position: absolute; right: 0; top: calc(100% + 10px); min-width: 230px; background: #fff; border: 2px solid var(--primary); border-radius: var(--radius); box-shadow: 0 10px 24px rgba(0,0,0,.18); z-index: 200; overflow: hidden; }
+.dropdown.open .dd-menu { display: block; }
+.nav-links .dd-menu a { display: flex; justify-content: space-between; align-items: center; padding: 13px 16px; font-size: 14px; border-bottom: 1px solid var(--border); }
+.nav-links .dd-menu a:last-child { border-bottom: none; }
+.nav-links .dd-menu a:hover, .nav-links .dd-menu a.active { background: var(--accent); border-bottom: 1px solid var(--border); }
+.dd-menu .count { background: var(--primary); color: var(--accent); font-size: 11px; min-width: 20px; height: 20px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; padding: 0 6px; }
+
+/* ---------- Catálogo: tarjetas centradas y filtros ordenados ---------- */
+.product-info { text-align: center; }
+.product-meta { justify-content: center; gap: 14px; }
+.seller-line { text-align: center; }
+
+.sidebar { padding: 22px 18px; }
+.sidebar .filter-group { margin-bottom: 22px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+.sidebar .filter-group:last-of-type { border-bottom: none; margin-bottom: 14px; padding-bottom: 0; }
+.sidebar .filter-group h3 { text-align: center; font-size: 13px; letter-spacing: 1px; margin-bottom: 14px; }
+.sidebar select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 4px; background: #fff; font-size: 14px; text-align: center; text-align-last: center; cursor: pointer; }
+.sidebar .filter-group label { display: flex; align-items: center; justify-content: flex-start; gap: 10px; padding: 8px 12px; margin-bottom: 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 14px; }
+.sidebar .filter-group label:hover { border-color: var(--primary); background: #fafafa; }
+.sidebar input[type=checkbox], .sidebar input[type=radio] { width: 16px; height: 16px; accent-color: var(--primary); flex-shrink: 0; }
+.price-inputs { justify-content: center; }
+.price-inputs span, .price-inputs input { text-align: center; }
+.sidebar .btn.block { margin-top: 4px; }
+.sidebar .link-btn { display: block; margin: 12px auto 0; }

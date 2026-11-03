@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reportes (Admin) - C2C Streetwear</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="admin">
+
+  <div id="app-header"></div>
+
+  <div class="page" id="admin-page">
+    <h1>Reportes <span class="tag dark" style="vertical-align:middle">Admin</span></h1>
+
+    <div class="stats" id="stats"></div>
+
+    <div class="tabs" id="filters">
+      <button class="tab active" data-f="Pendiente">Pendientes</button>
+      <button class="tab" data-f="Revisado">Revisados</button>
+      <button class="tab" data-f="Descartado">Descartados</button>
+      <button class="tab" data-f="">Todos</button>
+    </div>
+
+    <div class="panel">
+      <div class="table-wrap">
+        <table class="rep-table">
+          <thead>
+            <tr><th>Fecha</th><th>Artículo reportado</th><th>Denunciante</th><th>Motivo</th><th>Estado</th><th>Acciones</th></tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="data.js"></script>
+  <script>
+    const ok = Auth.requireAdmin();
+    renderHeader('admin');
+    const $ = (id) => document.getElementById(id);
+
+    if (!ok) {
+      $('admin-page').style.display = 'none';
+    } else {
+      const esc = (s) => String(s).replace(/[&<>"']/g,
+        c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+      let filter = 'Pendiente';
+
+      function render() {
+        const all = Moderation.getReports().slice().sort((a, b) => b.id - a.id);
+        const count = (s) => all.filter(r => r.status === s).length;
+
+        $('stats').innerHTML = [
+          [count('Pendiente'), 'Pendientes'], [count('Revisado'), 'Revisados'],
+          [count('Descartado'), 'Descartados'], [all.length, 'Total']
+        ].map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join('');
+
+        const list = filter ? all.filter(r => r.status === filter) : all;
+
+        $('rows').innerHTML = list.length ? list.map(r => {
+          const p = getProduct(r.articleId);
+          const art = p
+            ? `<a href="producto.html?id=${p.id}"><b>${esc(p.brand)} ${esc(p.title)}</b></a><div class="sub">${esc(p.seller)}</div>`
+            : '<span class="muted">Artículo eliminado</span>';
+          const acts = r.status === 'Pendiente'
+            ? `<button class="btn small accent" data-act="Revisado" data-id="${r.id}">Marcar revisado</button>
+               <button class="btn small secondary" data-act="Descartado" data-id="${r.id}">Descartar</button>`
+            : '<span class="muted">—</span>';
+          const cls = r.status === 'Revisado' ? 'ok' : r.status === 'Pendiente' ? 'warn' : '';
+          return `<tr>
+            <td>${esc(r.date)}</td><td>${art}</td><td>${esc(r.reporter)}</td>
+            <td class="reason">${esc(r.reason)}</td>
+            <td><span class="tag ${cls}">${esc(r.status)}</span></td>
+            <td class="acts">${acts}</td></tr>`;
+        }).join('')
+        : `<tr><td colspan="6" class="empty-cell">No hay reportes ${filter ? filter.toLowerCase() + 's' : ''}.</td></tr>`;
+      }
+
+      document.addEventListener('click', (e) => {
+        const t = e.target;
+        if (t.dataset.act) {
+          Moderation.setReportStatus(Number(t.dataset.id), t.dataset.act);
+          toast(t.dataset.act === 'Revisado' ? 'Reporte marcado como revisado' : 'Reporte descartado');
+          render();
+        }
+        if (t.closest('#filters') && t.dataset.f !== undefined) {
+          filter = t.dataset.f;
+          document.querySelectorAll('#filters .tab').forEach(b => b.classList.toggle('active', b === t));
+          render();
+        }
+      });
+
+      render();
+    }
+  </script>
+</body>
+</html>

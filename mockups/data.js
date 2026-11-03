@@ -25,7 +25,25 @@ const PRODUCTS = [
   { id: 4, brand: 'Supreme', title: 'Camp Cap Black', cat: 'Gorros', size: 'Única', sizeGroup: 'Única', cond: 'Nuevo', price: 65000, stock: 3,
     seller: '@DiegoVendedor', img: U('photo-1588850561407-ed78c282e89b'),
     imgs: [U('photo-1588850561407-ed78c282e89b'), U('photo-1556821840-3a63f95609a7')],
-    desc: 'Camp Cap negro, nuevo con etiqueta. Ajuste trasero regulable.' }
+    desc: 'Camp Cap negro, nuevo con etiqueta. Ajuste trasero regulable.' },
+    { id: 5, brand: 'Nike', title: 'Air Force 1 Low White', cat: 'Zapatillas', size: 'US 9', sizeGroup: 'M', cond: 'Usado', price: 95000, stock: 1,
+    seller: '@RetroKicks', img: U('photo-1595950653106-6c9ebd614d3a'), imgs: [U('photo-1595950653106-6c9ebd614d3a')],
+    desc: 'Blancas clásicas, uso moderado y suela limpia. Incluyen caja.' },
+  { id: 6, brand: 'Supreme', title: 'Box Logo Hoodie Grey', cat: 'Polerones', size: 'L', sizeGroup: 'L', cond: 'Nuevo', price: 180000, stock: 1,
+    seller: '@CataColeccionista', img: U('photo-1556821840-3a63f95609a7'), imgs: [U('photo-1556821840-3a63f95609a7')],
+    desc: 'Polerón gris con box logo bordado, nuevo con etiquetas.' },
+  { id: 7, brand: 'Stüssy', title: 'Stock Logo Cap', cat: 'Gorros', size: 'Única', sizeGroup: 'Única', cond: 'Nuevo', price: 45000, stock: 4,
+    seller: '@DiegoVendedor', img: U('photo-1588850561407-ed78c282e89b'), imgs: [U('photo-1588850561407-ed78c282e89b')],
+    desc: 'Jockey con logo bordado, ajuste regulable. Nuevo con etiqueta.' },
+  { id: 8, brand: 'Jordan', title: 'Air Jordan 4 Military Black', cat: 'Zapatillas', size: 'US 10', sizeGroup: 'L', cond: 'Usado', price: 220000, stock: 1,
+    seller: '@RetroKicks', img: U('photo-1608231387042-66d1773070a5'), imgs: [U('photo-1608231387042-66d1773070a5')],
+    desc: 'Muy buen estado, con caja y boleta. Autenticidad verificable.' },
+  { id: 9, brand: 'Nike', title: 'Tech Fleece Hoodie', cat: 'Polerones', size: 'S', sizeGroup: 'S', cond: 'Usado', price: 70000, stock: 2,
+    seller: '@CataColeccionista', img: U('photo-1556821840-3a63f95609a7'), imgs: [U('photo-1556821840-3a63f95609a7')],
+    desc: 'Polerón tech fleece negro, usado pocas veces, sin manchas.' },
+  { id: 10, brand: 'Supreme', title: 'Box Logo Beanie', cat: 'Gorros', size: 'Única', sizeGroup: 'Única', cond: 'Nuevo', price: 55000, stock: 2,
+    seller: '@DiegoVendedor', img: U('photo-1588850561407-ed78c282e89b'), imgs: [U('photo-1588850561407-ed78c282e89b')],
+    desc: 'Gorro de lana con box logo, nuevo.' }
 ];
 
 /* ---------- Utilidades ---------- */
@@ -41,10 +59,15 @@ function save(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); 
 const Auth = {
   getUser() { return load('c2c_active_user', null); },
   
-  getDB() { return load('c2c_users_db', {
-    'test@c2c.cl': { nombre1: 'Diego', nombre2: '', apellido1: 'Fuentes', apellido2: '',
-                     username: '@DiegoVendedor', email: 'test@c2c.cl', pass: '123', rol: 'usuario' }
-  }); },
+    getDB() {
+    const SEED = {
+      'test@c2c.cl':  { nombre1: 'Diego', nombre2: '', apellido1: 'Fuentes', apellido2: '',
+                        username: '@DiegoVendedor', email: 'test@c2c.cl', pass: '123', rol: 'usuario' },
+      'admin@c2c.cl': { nombre1: 'Admin', nombre2: '', apellido1: 'C2C', apellido2: '',
+                        username: '@AdminC2C', email: 'admin@c2c.cl', pass: 'admin123', rol: 'admin' }
+    };
+    return { ...SEED, ...load('c2c_users_db', {}) };
+  },
 
   login(email, pass) {
     email = email.trim().toLowerCase();
@@ -84,15 +107,43 @@ const Auth = {
     setTimeout(() => { location.href = 'login.html?next=' + encodeURIComponent(next); }, 900);
     return false;
   },
-  logout() { localStorage.removeItem('c2c_active_user'); }};
+
+  requireAdmin() {
+    const u = Auth.getUser();
+    if (u && u.rol === 'admin') return true;
+    if (!u) return Auth.require('Inicia sesión como administrador');
+    toast('Acceso restringido a administradores');
+    setTimeout(() => { location.href = 'catalogo.html'; }, 900);
+    return false;
+  },
+  logout() { localStorage.removeItem('c2c_active_user'); }
+};
 
 /* ---------- Mockup de Reportes y Valoraciones (RF12 y RF13) ---------- */
+const SEED_REPORTS = [
+  { id: 1, articleId: 1, reason: 'Contenido sospechoso o fraude - Detalles: la etiqueta interior no corresponde a un par original.',
+    reporter: '@CataColeccionista', date: '23-9-2026', status: 'Pendiente' },
+  { id: 2, articleId: 3, reason: 'Información engañosa o falsa',
+    reporter: '@MatiStreet', date: '21-9-2026', status: 'Revisado' },
+  { id: 3, articleId: 4, reason: 'Artículo prohibido o falsificado',
+    reporter: '@NachoKicks', date: '19-9-2026', status: 'Descartado' }
+];
+
 const Moderation = {
-    saveReport(articleId, reason) {
-    const reps = load('c2c_reports', []);
+  getReports() { return load('c2c_reports', SEED_REPORTS); },
+  saveReport(articleId, reason) {
+    const reps = Moderation.getReports();
     reps.push({ id: Date.now(), articleId, reason,
       reporter: (Auth.getUser() || {}).username || 'anónimo',
       date: new Date().toLocaleDateString('es-CL'), status: 'Pendiente' });
+    save('c2c_reports', reps);
+  },
+  setReportStatus(id, status) {
+    const reps = Moderation.getReports();
+    const r = reps.find(x => x.id === id);
+    if (!r) return;
+    r.status = status;
+    r.reviewedBy = (Auth.getUser() || {}).username;
     save('c2c_reports', reps);
   },
   saveReview(seller, stars, comment) {
@@ -118,10 +169,13 @@ const Store = {
     Store.setFavs(f); return f.includes(Number(id));
   },
   isFav(id) { return Store.favs().includes(Number(id)); },
-  updateBadges() {
-    const c = document.getElementById('badge-cart'), f = document.getElementById('badge-fav');
-    if (c) c.textContent = Object.values(Store.cart()).reduce((a, b) => a + b, 0);
-    if (f) f.textContent = Store.favs().length;
+    updateBadges() {
+    const c = document.getElementById('badge-cart'), f = document.getElementById('badge-fav'),
+          m = document.getElementById('badge-menu');
+    const nc = Object.values(Store.cart()).reduce((a, b) => a + b, 0), nf = Store.favs().length;
+    if (c) c.textContent = nc;
+    if (f) f.textContent = nf;
+    if (m) m.textContent = nc + nf;
   }
 };
 
@@ -129,13 +183,22 @@ const Store = {
 function renderHeader(active) {
   const el = document.getElementById('app-header');
   if (!el) return;
-  const cls = (n) => (n === active ? 'active' : '');
-  
+  const cls = (...names) => (names.includes(active) ? 'active' : '');
   const user = Auth.getUser();
-  const authButtons = user 
-    ? `<a href="perfil.html" class="btn-login">Mi Perfil</a>
-       <button onclick="Auth.logout(); window.location.href='catalogo.html';" class="link-btn" style="margin-left:12px; font-weight:bold;">Salir</button>`
-    : `<a href="login.html" class="btn-login" style="padding: 12px 24px; font-size: 16px;">Iniciar Sesión</a>`;
+
+  const userNav = user ? `
+      <div class="dropdown" id="menu-dd">
+        <button type="button" class="dd-btn ${cls('favoritos', 'carrito', 'chat', 'admin')}" id="menu-btn" aria-haspopup="true" aria-expanded="false">Menú ▾<span class="badge" id="badge-menu">0</span></button>
+        <div class="dd-menu" id="menu-list" role="menu">
+          <a href="carrito.html#favoritos" role="menuitem" class="${cls('favoritos')}">♡ Favoritos <span class="count" id="badge-fav">0</span></a>
+          <a href="carrito.html" role="menuitem" class="${cls('carrito')}">Carrito <span class="count" id="badge-cart">0</span></a>
+          <a href="chat.html" role="menuitem" class="${cls('chat')}">Mensajes</a>
+          ${user.rol === 'admin' ? `<a href="admin.html" role="menuitem" class="${cls('admin')}">Reportes</a>` : ''}
+        </div>
+      </div>
+      <a href="perfil.html" class="btn-login">Mi Perfil</a>
+      <button type="button" class="link-btn logout" onclick="Auth.logout(); window.location.href='catalogo.html';">Cerrar sesión</button>`
+    : `<a href="login.html" class="btn-login">Iniciar Sesión</a>`;
 
   el.outerHTML = `
   <header class="site-header">
@@ -146,15 +209,11 @@ function renderHeader(active) {
     </form>
     <nav class="nav-links">
       <a href="catalogo.html" class="${cls('catalogo')}">Catálogo</a>
-      <a href="carrito.html#favoritos" class="${cls('favoritos')}">Favoritos<span class="badge" id="badge-fav">0</span></a>
-      <a href="carrito.html" class="${cls('carrito')}">Carrito<span class="badge" id="badge-cart">0</span></a>
-      <a href="chat.html" class="${cls('chat')}">Mensajes</a>
-      ${authButtons}
+      ${userNav}
     </nav>
   </header>`;
   Store.updateBadges();
 }
-
 function toast(msg) {
   let t = document.getElementById('toast');
   if (!t) { t = document.createElement('div'); t.id = 'toast'; t.className = 'toast'; document.body.appendChild(t); }
@@ -188,3 +247,19 @@ document.addEventListener('click', (e) => {
   toast(on ? 'Agregado a favoritos' : 'Quitado de favoritos');
   if (typeof onFavChange === 'function') onFavChange();
 });
+
+
+/* Menú desplegable */
+function closeMenu() {
+  const dd = document.getElementById('menu-dd'), b = document.getElementById('menu-btn');
+  if (dd) dd.classList.remove('open');
+  if (b) b.setAttribute('aria-expanded', 'false');
+}
+document.addEventListener('click', (e) => {
+  const dd = document.getElementById('menu-dd');
+  if (!dd) return;
+  const btn = e.target.closest('#menu-btn');
+  if (btn) { const open = dd.classList.toggle('open'); btn.setAttribute('aria-expanded', open); return; }
+  if (!e.target.closest('#menu-list')) closeMenu();
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
