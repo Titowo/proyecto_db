@@ -332,3 +332,6 @@ body.chat-body { display: flex; flex-direction: column; height: 100vh; overflow:
 .price-inputs span, .price-inputs input { text-align: center; }
 .sidebar .btn.block { margin-top: 4px; }
 .sidebar .link-btn { display: block; margin: 12px auto 0; }
+
+
+.nav-links .btn-login { padding: 10px 20px; font-size: 17px; border-radius: 8px; }
