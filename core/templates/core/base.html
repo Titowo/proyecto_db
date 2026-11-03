@@ -1,0 +1,40 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}C2C Streetwear{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'core/css/styles.css' %}">
+</head>
+<body class="page-{% block page_id %}home{% endblock %}">
+
+  <!-- Header de navegación principal -->
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="{% url 'catalogo' %}" class="logo">
+        <span class="c2c">C2C</span> <span class="streetwear">STREETWEAR</span>
+      </a>
+      
+      <form action="{% url 'catalogo' %}" method="GET" class="search-bar">
+        <input type="text" name="q" placeholder="Buscar zapatillas, polerones..." value="{{ request.GET.q }}">
+        <button type="submit" class="btn small accent">Buscar</button>
+      </form>
+
+      <nav class="nav-links">
+        <a href="{% url 'catalogo' %}">Catálogo</a>
+        <a href="{% url 'carrito' %}">Carrito</a>
+        <a href="{% url 'chat' %}">Mensajes</a>
+        <a href="{% url 'publicar' %}" class="btn small accent" style="color: #000; font-weight: 700;">Publicar</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Contenido principal dinámico -->
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

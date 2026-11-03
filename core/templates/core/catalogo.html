@@ -1,52 +1,76 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Catálogo - C2C Streetwear</title>
-</head>
-<body>
-    <h1>Catálogo de Streetwear</h1>
+{% extends 'core/base.html' %}
+{% load static %}
 
-    <!-- Zona de filtros -->
-    <form method="GET" action="">
-        <label>Categoría (Obligatorio):</label>
-        <select name="categoria" id="categoria" required>
-    <option value="">Selecciona una categoría</option>
-    <!-- Recorremos la variable 'categorias' que enviamos desde views.py -->
-    {% for c in categorias %}
-        <option value="{{ c.id_categoria }}">
-            {{ c.nombre }}
-        </option>
-    {% endfor %}
-</select>
+{% block title %}Catálogo - C2C Streetwear{% endblock %}
+{% block page_id %}catalogo{% endblock %}
 
-        <label>Precio Mínimo (Obligatorio):</label>
-        <input type="number" name="precio_min" required>
+{% block content %}
+<div class="container">
+  <!-- Barra lateral de filtros responsiva -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sheet-head">
+      <b>Filtros</b>
+      <button type="button" class="link-btn" id="close-filters">✕ Cerrar</button>
+    </div>
+    
+    <form method="GET" class="filter-form">
+      <div class="filter-group">
+        <h4>Categoría</h4>
+        <div class="filter-options">
+          <label><input type="radio" name="categoria" value="" {% if not request.GET.categoria %}checked{% endif %}> Todas</label>
+          {% for cat in categorias %}
+            <label><input type="radio" name="categoria" value="{{ cat.id }}" {% if request.GET.categoria == cat.id|stringformat:"s" %}checked{% endif %}> {{ cat.nombre }}</label>
+          {% endfor %}
+        </div>
+      </div>
+      
+      <div class="filter-group">
+        <h4>Precio Máximo</h4>
+        <input type="range" name="max" min="10000" max="300000" step="5000" value="{{ request.GET.max|default:300000 }}" oninput="this.nextElementSibling.value = '$' + this.value">
+        <output style="font-weight: 700; font-size: 13px;">${{ request.GET.max|default:300000 }}</output>
+      </div>
 
-        <label>Precio Máximo (Obligatorio):</label>
-        <input type="number" name="precio_max" required>
-
-        <button type="submit">Buscar</button>
+      <button type="submit" class="btn accent" style="width:100%; margin-top:12px;">Aplicar Filtros</button>
     </form>
+  </aside>
 
-    <hr>
-
-    <!-- Mensajes del sistema -->
-    {% if mensaje %}
-        <p style="color: red;"><strong>{{ mensaje }}</strong></p>
-    {% endif %}
-
-    <!-- Zona de resultados -->
-    <div style="display: flex; gap: 20px;">
-        {% for articulo in articulos %}
-            <div style="border: 1px solid black; padding: 10px;">
-                <h3>{{ articulo.nombre }}</h3>
-                <p>Precio: ${{ articulo.precio }}</p>
-                <p>Talla: {{ articulo.talla }} | Estado: {{ articulo.estado_conservacion }}</p>
-            </div>
-        {% endfor %}
+  <!-- Sección principal del catálogo -->
+  <section class="catalog-section">
+    <div class="toolbar">
+      <span id="count" class="muted">{{ articulos.count }} artículos encontrados</span>
+      <button type="button" class="btn small secondary filters-btn" id="open-filters">☰ Filtros</button>
     </div>
 
-</body>
-</html>
+    <main class="catalog-grid" id="grid">
+      {% for p in articulos %}
+        <a class="product-card" href="{% url 'producto' p.id %}">
+          <img src="{% if p.fotos %}{{ p.fotos.0.url_imagen }}{% endif %}" alt="{{ p.nombre }}" class="product-image">
+          <div class="product-info">
+            <div class="brand">{{ p.marca }}</div>
+            <h2 class="product-title">{{ p.nombre }}</h2>
+            <div class="product-meta">
+              <span>Talla: {{ p.talla }}</span>
+              <span>{{ p.estado_conservacion }}</span>
+            </div>
+            <div class="price">${{ p.precio }}</div>
+            <div class="seller-line">Vende {{ p.vendedor.username }}</div>
+          </div>
+        </a>
+      {% empty %}
+        <div class="empty" style="grid-column: 1/-1; text-align: center; padding: 40px;">
+          <h3>No encontramos artículos con esos filtros.</h3>
+        </div>
+      {% endfor %}
+    </main>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Control interactivo del menú lateral de filtros en dispositivos móviles
+  const sidebar = document.getElementById('sidebar');
+  document.getElementById('open-filters').onclick = () => sidebar.classList.add('open');
+  document.getElementById('close-filters').onclick = () => sidebar.classList.remove('open');
+</script>
+{% endblock %}
