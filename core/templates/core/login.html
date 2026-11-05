@@ -1,4 +1,103 @@
 {% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Acceso - C2C Streetwear{% endblock %}
+{% block page_id %}login{% endblock %}
+
 {% block content %}
-<div class='page'><h1>Login</h1><p>Template migrado.</p></div>
+<div class="auth-container">
+
+  <!-- Caja de Inicio de Sesión -->
+  <div class="auth-box" id="box-login">
+    <h2>Iniciar Sesión</h2>
+    {% if error and not show_register %}
+    <div class="form-error" style="background: #fdecea; border: 1px solid #e5a29b; color: #c0392b; padding: 12px 14px; border-radius: 4px; font-size: 13px; margin-bottom: 16px;">
+      {{ error }}
+    </div>
+    {% endif %}
+    <form id="form-login" method="POST" action="{% url 'login' %}">
+      {% csrf_token %}
+      <div class="field">
+        <label>Correo Electrónico</label>
+        <input type="email" name="email" placeholder="ejemplo@correo.com" required>
+      </div>
+      <div class="field">
+        <label>Contraseña</label>
+        <input type="password" name="password" required>
+      </div>
+      <button type="submit" class="btn accent block">Ingresar a mi cuenta</button>
+      <p class="switch-auth">¿No tienes cuenta? <a href="#" id="to-register">Regístrate aquí</a></p>
+    </form>
+  </div>
+
+  <!-- Caja de Registro -->
+  <div class="auth-box" id="box-register" style="{% if show_register %}display:block;{% else %}display:none;{% endif %}">
+    <h2>Crear Cuenta</h2>
+    {% if error and show_register %}
+    <div class="form-error" style="background: #fdecea; border: 1px solid #e5a29b; color: #c0392b; padding: 12px 14px; border-radius: 4px; font-size: 13px; margin-bottom: 16px;">
+      {{ error }}
+    </div>
+    {% endif %}
+    <form id="form-register" method="POST" action="{% url 'register' %}">
+      {% csrf_token %}
+      <div class="field-row">
+        <div class="field">
+          <label for="r-n1">Primer nombre</label>
+          <input type="text" id="r-n1" name="nombre1" maxlength="50" required value="{{ reg_nombre1|default:'' }}">
+        </div>
+        <div class="field">
+          <label for="r-n2">Segundo nombre <small>(opcional)</small></label>
+          <input type="text" id="r-n2" name="nombre2" maxlength="50" value="{{ reg_nombre2|default:'' }}">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="r-a1">Primer apellido</label>
+          <input type="text" id="r-a1" name="apellido1" maxlength="50" required value="{{ reg_apellido1|default:'' }}">
+        </div>
+        <div class="field">
+          <label for="r-a2">Segundo apellido <small>(opcional)</small></label>
+          <input type="text" id="r-a2" name="apellido2" maxlength="50" value="{{ reg_apellido2|default:'' }}">
+        </div>
+      </div>
+      <div class="field">
+        <label for="r-user">@usuario</label>
+        <input type="text" id="r-user" name="nombre_usuario" placeholder="@tuusuario" maxlength="30" required value="{{ reg_usuario|default:'' }}">
+      </div>
+      <div class="field">
+        <label for="r-email">Correo Electrónico</label>
+        <input type="email" id="r-email" name="email" placeholder="ejemplo@correo.com" required value="{{ reg_email|default:'' }}">
+      </div>
+      <div class="field">
+        <label for="r-pass">Contraseña</label>
+        <input type="password" id="r-pass" name="password" required>
+      </div>
+      <button type="submit" class="btn accent block">Registrarme</button>
+      <p class="switch-auth">¿Ya tienes cuenta? <a href="#" id="to-login">Inicia sesión</a></p>
+    </form>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Alternar vistas
+  document.getElementById('to-register').onclick = function(e) {
+    e.preventDefault();
+    document.getElementById('box-login').style.display = 'none';
+    document.getElementById('box-register').style.display = 'block';
+  };
+  document.getElementById('to-login').onclick = function(e) {
+    e.preventDefault();
+    document.getElementById('box-register').style.display = 'none';
+    document.getElementById('box-login').style.display = 'block';
+  };
+  
+  // Mostrar formulario de registro si hay error de registro
+  {% if show_register %}
+  document.getElementById('box-login').style.display = 'none';
+  document.getElementById('box-register').style.display = 'block';
+  {% endif %}
+</script>
 {% endblock %}

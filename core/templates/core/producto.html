@@ -5,137 +5,152 @@
 {% block page_id %}producto{% endblock %}
 
 {% block content %}
-  <div class="breadcrumb" id="crumb">
-    <a href="{% url 'catalogo' %}">Catálogo</a> / <a href="{% url 'catalogo' %}">{{ p.categoria.nombre }}</a> / {{ p.nombre }}
-  </div>
+<div class="breadcrumb" id="crumb">
+  <a href="{% url 'catalogo' %}">Catálogo</a> / <a href="{% url 'catalogo' %}">{{ p.categoria.nombre }}</a> / {{ p.nombre }}
+</div>
 
-  <div class="pdp">
-    <div class="gallery">
-      <!-- Imagen principal para escritorio -->
-      <img class="main" id="main-img" src="{% if p.fotos %}{{ p.fotos.0.url_imagen }}{% endif %}" alt="{{ p.nombre }}">
-      
-      <!-- Miniaturas de escritorio -->
-      <div class="thumbs">
-        {% for foto in p.fotos %}
-          <img src="{{ foto.url_imagen }}" class="{% if forloop.first %}sel{% endif %}" data-i="{{ forloop.counter0 }}" alt="Foto {{ forloop.counter }}">
-        {% endfor %}
-      </div>
+<div class="pdp">
+  <div class="gallery">
+    <img class="main" id="main-img" src="{% if p.fotos %}{{ p.fotos.0.url_imagen }}{% endif %}" alt="{{ p.nombre }}">
 
-      <!-- Slider deslizable para versión móvil (manejado por CSS) -->
-      <div class="slider" id="slider">
-        {% for foto in p.fotos %}
-          <img src="{{ foto.url_imagen }}" alt="Foto {{ forloop.counter }}">
-        {% endfor %}
-      </div>
-      
-      <!-- Puntos de navegación móvil -->
-      <div class="dots" id="dots">
-        {% for foto in p.fotos %}
-          <span class="{% if forloop.first %}on{% endif %}"></span>
-        {% endfor %}
-      </div>
-    </div>
-    
-    <!-- Barra inferior fija exclusiva para móviles -->
-    <div class="buybar">
-      <div class="bb-price">${{ p.precio }}</div>
-      <button class="btn accent" id="add2">Agregar al carrito</button>
-      <a class="btn secondary" href="#">Negociar</a>
+    <div class="thumbs">
+      {% for foto in p.fotos %}
+      <img src="{{ foto.url_imagen }}" class="{% if forloop.first %}sel{% endif %}" data-i="{{ forloop.counter0 }}" alt="Foto {{ forloop.counter }}">
+      {% endfor %}
     </div>
 
-    <div class="pdp-info">
-      <div class="brand">{{ p.marca }}</div>
-      <h1>{{ p.nombre }}</h1>
-      <div class="pdp-price">${{ p.precio }}</div>
-      <span class="tag {% if p.estado_conservacion == 'Nuevo' %}ok{% endif %}">{{ p.estado_conservacion }}</span>
-      <span class="tag">{{ p.stock }} en stock</span>
-
-      <table class="spec-table">
-        <tr><td>Categoría</td><td>{{ p.categoria.nombre }}</td></tr>
-        <tr><td>Talla</td><td>{{ p.talla }}</td></tr>
-        <tr><td>Estado</td><td>{{ p.estado_conservacion }}</td></tr>
-        <tr><td>Stock disponible</td><td>{{ p.stock }} unidad(es)</td></tr>
-      </table>
-      <p style="font-size:14px;line-height:1.5;color:#333">{{ p.descripcion }}</p>
-
-      <div class="qty-row">
-        <b style="font-size:13px;text-transform:uppercase">Cantidad</b>
-        <div class="stepper">
-          <button id="minus">−</button><span id="qty">1</span><button id="plus">+</button>
-        </div>
-      </div>
-
-      <div class="cta-row">
-        <button class="btn accent" id="add">Agregar al carrito</button>
-        <a class="btn secondary" id="chat" href="#">Negociar con el vendedor</a>
-      </div>
-      <div class="cta-row" style="margin-top:10px">
-        <button class="btn secondary" id="fav">♡ Guardar en favoritos</button>
-      </div>
-
-      <div class="seller-box">
-        <div class="avatar">{{ p.vendedor.username|slice:"1:2"|upper }}</div>
-        <div class="grow">
-          <h4>{{ p.vendedor.username }}</h4>
-          <p>★ {{ p.vendedor.reputacion|default:"5.0" }} · {{ p.vendedor.numero_ventas|default:"0" }} ventas · {{ p.vendedor.ubicacion|default:"Santiago" }}</p>
-        </div>
-        <a class="btn small secondary" href="#">Escribir</a>
-      </div>
-      <button class="link-btn" id="btn-reportar" style="color:var(--danger); margin-top:16px; display:block; width:100%; text-align:center;">⚠ Reportar publicación</button>
-      <div class="notice">Compra entre personas: coordina precio, lugar y hora de entrega por el chat. La venta se confirma en el sistema para descontar el stock.</div>
+    <div class="slider" id="slider">
+      {% for foto in p.fotos %}
+      <img src="{{ foto.url_imagen }}" alt="Foto {{ forloop.counter }}">
+      {% endfor %}
     </div>
-  </div>
 
-  <div class="related">
-    <h2 class="section-title" style="padding:0">Más de este vendedor y similares</h2>
-    <div class="catalog-grid" id="related">
-      {% for rel in relacionados %}
-      <a class="product-card" href="{% url 'producto' rel.id %}">
-        <img src="{% if rel.fotos %}{{ rel.fotos.0.url_imagen }}{% endif %}" alt="{{ rel.nombre }}" class="product-image">
-        <div class="product-info">
-          <div class="brand">{{ rel.marca }}</div>
-          <h2 class="product-title">{{ rel.nombre }}</h2>
-          <div class="product-meta"><span>Talla: {{ rel.talla }}</span><span>{{ rel.estado_conservacion }}</span></div>
-          <div class="price">${{ rel.precio }}</div>
-          <div class="seller-line">Vende {{ rel.vendedor.username }}</div>
-        </div>
-      </a>
-      {% empty %}
-      <div class="empty">No hay más artículos relacionados.</div>
+    <div class="dots" id="dots">
+      {% for foto in p.fotos %}
+      <span class="{% if forloop.first %}on{% endif %}"></span>
       {% endfor %}
     </div>
   </div>
+
+  <div class="buybar">
+    <div class="bb-price">${{ p.precio }}</div>
+    <button class="btn accent" id="add2">Agregar al carrito</button>
+    <a class="btn secondary" href="{% url 'chat' %}?id={{ p.id }}">Negociar</a>
+  </div>
+
+  <div class="pdp-info">
+    <div class="brand">{{ p.marca }}</div>
+    <h1>{{ p.nombre }}</h1>
+    <div class="pdp-price">${{ p.precio }}</div>
+    <span class="tag {% if p.estado_conservacion == 'Nuevo' %}ok{% endif %}">{{ p.estado_conservacion }}</span>
+    <span class="tag">{{ p.stock }} en stock</span>
+
+    <table class="spec-table">
+      <tr><td>Categoría</td><td>{{ p.categoria.nombre }}</td></tr>
+      <tr><td>Talla</td><td>{{ p.talla }}</td></tr>
+      <tr><td>Estado</td><td>{{ p.estado_conservacion }}</td></tr>
+      <tr><td>Stock disponible</td><td>{{ p.stock }} unidad(es)</td></tr>
+    </table>
+    <p style="font-size:14px;line-height:1.5;color:#333">{{ p.descripcion }}</p>
+
+    <div class="qty-row">
+      <b style="font-size:13px;text-transform:uppercase">Cantidad</b>
+      <div class="stepper">
+        <button id="minus">−</button><span id="qty">1</span><button id="plus">+</button>
+      </div>
+    </div>
+
+    <div class="cta-row">
+      <button class="btn accent" id="add">Agregar al carrito</button>
+      <a class="btn secondary" id="chat-link" href="{% url 'chat' %}?id={{ p.id }}">Negociar con el vendedor</a>
+    </div>
+    <div class="cta-row" style="margin-top:10px">
+      <button class="btn secondary" id="fav">♡ Guardar en favoritos</button>
+    </div>
+
+    <div class="seller-box">
+      <div class="avatar">{{ p.vendedor.nombre_usuario|upper }}</div>
+      <div class="grow">
+        <h4>{{ p.vendedor.nombre_usuario }}</h4>
+        <p class="muted" style="font-size:12px;">★ 5.0 · 0 ventas</p>
+      </div>
+      <a class="btn small secondary" href="#">Escribir</a>
+    </div>
+    <button class="link-btn" id="btn-reportar" style="color:var(--danger); margin-top:16px; display:block; width:100%; text-align:center;">⚠ Reportar publicación</button>
+    <div class="notice">Compra entre personas: coordina precio, lugar y hora de entrega por el chat. La venta se confirma en el sistema para descontar el stock.</div>
+  </div>
+</div>
+
+<div class="related">
+  <h2 class="section-title" style="padding:0">Más de este vendedor y similares</h2>
+  <div class="catalog-grid" id="related">
+    {% for rel in relacionados %}
+    <a class="product-card" href="{% url 'producto' rel.id %}">
+      <button class="fav-btn" data-fav="{{ rel.id }}" title="Favorito">♡</button>
+      <img src="{% if rel.fotos %}{{ rel.fotos.0.url_imagen }}{% endif %}" alt="{{ rel.nombre }}" class="product-image">
+      <div class="product-info">
+        <div class="brand">{{ rel.marca }}</div>
+        <h2 class="product-title">{{ rel.nombre }}</h2>
+        <div class="product-meta"><span>Talla: {{ rel.talla }}</span><span>{{ rel.estado_conservacion }}</span></div>
+        <div class="price">${{ rel.precio }}</div>
+        <div class="seller-line">Vende {{ rel.vendedor.nombre_usuario }}</div>
+      </div>
+    </a>
+    {% empty %}
+    <div class="empty">No hay más artículos relacionados.</div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-report">
+  <div class="modal">
+    <h3>Reportar Publicación</h3>
+    <p style="font-size:13px; color:var(--muted); margin-bottom:12px;">Selecciona el motivo por el cual consideras que esta publicación incumple las normas.</p>
+    <select id="report-reason" class="modal-select">
+      <option value="">Selecciona un motivo...</option>
+      <option value="Contenido sospechoso o fraude">Contenido sospechoso o fraude</option>
+      <option value="Información engañosa o falsa">Información engañosa o falsa</option>
+      <option value="Artículo prohibido o falsificado">Artículo prohibido o falsificado</option>
+    </select>
+    <textarea id="report-details" class="modal-textarea" placeholder="Cuentanos brevemente qué sucedió (opcional)..."></textarea>
+    <div class="btns">
+      <button class="btn secondary" id="r-cancel">Cancelar</button>
+      <button class="btn accent" id="r-ok">Enviar Reporte</button>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-  // Interactividad de miniaturas en escritorio
-  document.querySelectorAll('.thumbs img').forEach(t => t.addEventListener('click', () => {
-    document.getElementById('main-img').src = t.src;
-    document.querySelectorAll('.thumbs img').forEach(x => x.classList.remove('sel')); 
-    t.classList.add('sel');
-  }));
+  document.querySelectorAll('.thumbs img').forEach(function(t) {
+    t.addEventListener('click', function() {
+      document.getElementById('main-img').src = this.src;
+      document.querySelectorAll('.thumbs img').forEach(function(x) { x.classList.remove('sel'); });
+      this.classList.add('sel');
+    });
+  });
 
-  // Control de stepper de cantidad
-  const qSpan = document.getElementById('qty');
-  let currentQty = 1;
-  const maxStock = {{ p.stock }};
-  
-  const minusBtn = document.getElementById('minus');
-  const plusBtn = document.getElementById('plus');
-  
-  if(minusBtn && plusBtn) {
-    minusBtn.onclick = () => { currentQty = Math.max(1, currentQty - 1); qSpan.textContent = currentQty; };
-    plusBtn.onclick = () => { currentQty = Math.min(maxStock, currentQty + 1); qSpan.textContent = currentQty; };
+  var slider = document.getElementById('slider');
+  if(slider) {
+    slider.addEventListener('scroll', function() {
+      var i = Math.round(this.scrollLeft / this.clientWidth);
+      document.querySelectorAll('#dots span').forEach(function(d, k) {
+        d.classList.toggle('on', k === i);
+      });
+    });
   }
 
-  // Sincronización del slider móvil con los puntos indicadores
-  const slider = document.getElementById('slider');
-  if(slider) {
-    slider.addEventListener('scroll', () => {
-      const i = Math.round(slider.scrollLeft / slider.clientWidth);
-      document.querySelectorAll('#dots span').forEach((d, k) => d.classList.toggle('on', k === i));
-    });
+  var qSpan = document.getElementById('qty');
+  var currentQty = 1;
+  var maxStock = {{ p.stock|default:1|safe }};
+  
+  var minusBtn = document.getElementById('minus');
+  var plusBtn = document.getElementById('plus');
+  
+  if(minusBtn && plusBtn) {
+    minusBtn.onclick = function() { currentQty = Math.max(1, currentQty - 1); qSpan.textContent = currentQty; };
+    plusBtn.onclick = function() { currentQty = Math.min(maxStock, currentQty + 1); qSpan.textContent = currentQty; };
   }
 </script>
 {% endblock %}

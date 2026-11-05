@@ -1,4 +1,92 @@
 {% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Reportes (Admin) - C2C Streetwear{% endblock %}
+{% block page_id %}admin{% endblock %}
+
 {% block content %}
-<div class='page'><h1>Admin</h1><p>Template migrado.</p></div>
+<div class="page" id="admin-page">
+  <h1>Reportes <span class="tag dark" style="vertical-align:middle">Admin</span></h1>
+
+  <div class="stats" id="stats">
+    <div class="stat"><b>{{ pendientes|default:0 }}</b><span>Pendientes</span></div>
+    <div class="stat"><b>{{ revisados|default:0 }}</b><span>Revisados</span></div>
+    <div class="stat"><b>{{ descartados|default:0 }}</b><span>Descartados</span></div>
+    <div class="stat"><b>{{ total|default:0 }}</b><span>Total</span></div>
+  </div>
+
+  <div class="tabs" id="filters">
+    <button class="tab active" data-f="Pendiente">Pendientes</button>
+    <button class="tab" data-f="Revisado">Revisados</button>
+    <button class="tab" data-f="Descartado">Descartados</button>
+    <button class="tab" data-f="">Todos</button>
+  </div>
+
+  <div class="panel">
+    <div class="table-wrap">
+      <table class="rep-table">
+        <thead>
+          <tr><th>Fecha</th><th>Artículo reportado</th><th>Denunciante</th><th>Motivo</th><th>Estado</th><th>Acciones</th></tr>
+        </thead>
+        <tbody id="rows">
+          {% for r in reportes %}
+          <tr>
+            <td>{{ r.fecha|date:"d-m-Y" }}</td>
+            <td>
+              <a href="{% url 'producto' r.articulo.id %}">
+                <b>{{ r.articulo.marca }} {{ r.articulo.nombre }}</b>
+              </a>
+              <div class="sub">{{ r.articulo.vendedor.nombre_usuario|default:r.articulo.vendedor.username }}</div>
+            </td>
+            <td>{{ r.denunciante.nombre_usuario|default:r.denunciante.username }}</td>
+            <td class="reason">{{ r.motivo }}{% if r.detalles %} - Detalles: {{ r.detalles }}{% endif %}</td>
+            <td>
+              <span class="tag {% if r.estado == 'Revisado' %}ok{% elif r.estado == 'Pendiente' %}warn{% endif %}">
+                {{ r.estado }}
+              </span>
+            </td>
+            <td class="acts">
+              {% if r.estado == 'Pendiente' %}
+              <form method="POST" action="{% url 'actualizar_reporte' r.id %}" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="estado" value="Revisado">
+                <button class="btn small accent" type="submit">Marcar revisado</button>
+                <input type="hidden" name="estado" value="Descartado">
+                <button class="btn small secondary" type="submit" onclick="return confirm('¿Descartar este reporte?')">Descartar</button>
+              </form>
+              {% else %}
+              —
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" class="empty-cell">No hay reportes {{ filtro|default:"todos" }}.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Tab filtering
+  document.querySelectorAll('#filters .tab').forEach(tab => {
+    tab.onclick = function() {
+      document.querySelectorAll('#filters .tab').forEach(t => t.classList.remove('active'));
+      this.classList.add('active');
+      const filter = this.dataset.f;
+      const rows = document.querySelectorAll('#rows tr');
+      rows.forEach(row => {
+        const statusCell = row.querySelector('td:nth-child(5) .tag');
+        if (filter) {
+          row.style.display = statusCell && statusCell.textContent === filter ? '' : 'none';
+        } else {
+          row.style.display = '';
+        }
+      });
+    };
+  });
+</script>
 {% endblock %}

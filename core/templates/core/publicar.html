@@ -1,70 +1,156 @@
 {% extends 'core/base.html' %}
 {% load static %}
 
-{% block title %}Publicar Artículo - C2C Streetwear{% endblock %}
+{% block title %}Publicar artículo - C2C Streetwear{% endblock %}
 {% block page_id %}publicar{% endblock %}
 
 {% block content %}
-<div class="container" style="max-width: 600px; padding: 40px 20px;">
-  <div style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 32px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
-    <h1 style="font-size: 22px; font-weight: 800; margin-bottom: 8px;">Publicar una nueva prenda</h1>
-    <p style="color: #666; font-size: 14px; margin-bottom: 24px;">Completa los detalles de tu artículo para publicarlo instantáneamente en el catálogo.</p>
+<div class="page" id="pub-page" style="max-width:900px">
+  <h1>Publicar artículo</h1>
 
-    <form method="POST">
+  <div class="panel">
+    <h3>Datos del artículo</h3>
+    {% if error %}
+    <div class="form-error" style="background: #fdecea; border: 1px solid #e5a29b; color: #c0392b; padding: 12px 14px; border-radius: 4px; font-size: 13px; margin-bottom: 16px;">
+      {{ error }}
+    </div>
+    {% endif %}
+    
+    <form class="body form-grid" id="pub-form" method="POST" enctype="multipart/form-data">
       {% csrf_token %}
-      
-      <div style="margin-bottom: 16px;">
-        <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px;">Nombre del artículo</label>
-        <input type="text" name="nombre" placeholder="Ej. Nike Dunk Low Panda" style="width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;" required>
+      <div>
+        <label for="f-brand">Marca</label>
+        <input id="f-brand" list="brands" maxlength="50" name="marca" placeholder="Ej: Nike" required>
+        <datalist id="brands">
+          <option value="Nike">
+          <option value="Jordan">
+          <option value="Stüssy">
+          <option value="Supreme">
+        </datalist>
+      </div>
+      <div>
+        <label for="f-title">Nombre del artículo</label>
+        <input id="f-title" type="text" name="nombre" maxlength="100" placeholder='Ej: Dunk Low "Panda"' required>
+      </div>
+      <div class="full">
+        <label for="f-desc">Descripción</label>
+        <textarea id="f-desc" name="descripcion" placeholder="Describe el estado, uso, accesorios incluidos..." required></textarea>
+      </div>
+      <div>
+        <label for="f-price">Precio (CLP)</label>
+        <input id="f-price" type="number" name="precio" min="1" step="1" placeholder="120000" required>
+      </div>
+      <div>
+        <label for="f-stock">Stock</label>
+        <input id="f-stock" type="number" name="stock" min="1" step="1" value="1" required>
+      </div>
+      <div>
+        <label for="f-cat">Categoría</label>
+        <select id="f-cat" name="categoria" required>
+          <option value="">Selecciona una categoría</option>
+          <option value="Zapatillas">Zapatillas</option>
+          <option value="Polerones">Polerones</option>
+          <option value="Gorros">Gorros</option>
+        </select>
+      </div>
+      <div>
+        <label for="f-size">Talla</label>
+        <select id="f-size" name="talla" required>
+          <option value="US 8 / S">US 8 / S</option>
+          <option value="US 9 / M">US 9 / M</option>
+          <option value="US 10 / L" selected>US 10 / L</option>
+          <option value="Única">Talla única</option>
+        </select>
+      </div>
+      <div class="full">
+        <label for="f-cond">Estado</label>
+        <select id="f-cond" name="estado_conservacion" required>
+          <option value="">Selecciona estado</option>
+          <option value="Nuevo">Nuevo</option>
+          <option value="Usado">Usado</option>
+        </select>
       </div>
 
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-        <div>
-          <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px;">Marca</label>
-          <input type="text" name="marca" placeholder="Ej. Nike, Stüssy, Supreme" style="width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;" required>
-        </div>
-        <div>
-          <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px;">Categoría</label>
-          <select name="categoria" style="width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; background: white;" required>
-            {% for cat in categorias %}
-              <option value="{{ cat.id }}">{{ cat.nombre }}</option>
-            {% empty %}
-              <option value="">No hay categorías cargadas</option>
-            {% endfor %}
-          </select>
-        </div>
+      <!-- Sección de Fotos con Preview y selección de Principal -->
+      <div class="full">
+        <label>Fotos (máx. 5)</label>
+        <label class="photo-drop" for="f-files">+ Agregar fotos <b id="photo-count">0/5</b></label>
+        <input id="f-files" type="file" accept="image/jpeg,image/png,image/webp" multiple name="fotos" style="display:none;">
+        
+        <!-- Contenedor donde se dibujarán las previsualizaciones -->
+        <div class="photo-grid" id="photos" style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px;"></div>
+        
+        <!-- Campo oculto para enviar cuál índice de foto es la principal -->
+        <input type="hidden" name="index_principal" id="index-principal" value="0">
+        
+        <p class="muted" style="font-size:12px;margin-top:8px">Haz clic en una miniatura para establecerla como foto principal (marcada con borde destacado).</p>
       </div>
 
-      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-        <div>
-          <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px;">Precio ($ CLP)</label>
-          <input type="number" name="precio" placeholder="120000" style="width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;" required>
-        </div>
-        <div>
-          <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px;">Talla</label>
-          <input type="text" name="talla" placeholder="US 10 / L" style="width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;" required>
-        </div>
-        <div>
-          <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px;">Estado</label>
-          <select name="estado_conservacion" style="width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; background: white;">
-            <option value="Nuevo">Nuevo</option>
-            <option value="Usado">Usado</option>
-          </select>
-        </div>
+      <div class="full" style="display:flex;gap:10px;justify-content:flex-end">
+        <a class="btn secondary" href="{% url 'catalogo' %}">Cancelar</a>
+        <button type="submit" class="btn accent">Publicar</button>
       </div>
-
-      <div style="margin-bottom: 16px;">
-        <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px;">URL de la foto principal</label>
-        <input type="url" name="url_imagen" placeholder="https://images.unsplash.com/..." style="width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;" required>
-      </div>
-
-      <div style="margin-bottom: 24px;">
-        <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px;">Descripción</label>
-        <textarea name="descripcion" rows="4" placeholder="Describe los detalles de la prenda, estado de conservación y si incluyes caja o etiquetas..." style="width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; resize: vertical;" required></textarea>
-      </div>
-
-      <button type="submit" class="btn accent" style="width: 100%; padding: 12px; font-size: 15px; font-weight: 700; text-align: center; border: none; border-radius: 6px; cursor: pointer;">Publicar Artículo</button>
     </form>
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const fileInput = document.getElementById('f-files');
+  const photosContainer = document.getElementById('photos');
+  const photoCount = document.getElementById('photo-count');
+  const inputPrincipal = document.getElementById('index-principal');
+  
+  let selectedFiles = [];
+  let principalIndex = 0;
+
+  fileInput.addEventListener('change', function(e) {
+    const newFiles = Array.from(e.target.files);
+    
+    // Validar máximo 5 archivos en total
+    if (selectedFiles.length + newFiles.length > 5) {
+      alert("Solo puedes subir un máximo de 5 fotos.");
+      return;
+    }
+
+    selectedFiles = selectedFiles.concat(newFiles);
+    renderPreviews();
+  });
+
+  function renderPreviews() {
+    photosContainer.innerHTML = '';
+    photoCount.textContent = selectedFiles.length + '/5';
+
+    selectedFiles.forEach((file, index) => {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const div = document.createElement('div');
+        div.style.position = 'relative';
+        div.style.width = '80px';
+        div.style.height = '80px';
+        div.style.border = index === principalIndex ? '3px solid var(--accent, #111)' : '1px solid #ccc';
+        div.style.borderRadius = '6px';
+        div.style.overflow = 'hidden';
+        div.style.cursor = 'pointer';
+        div.title = "Haz clic para hacer esta la foto principal";
+
+        div.innerHTML = `
+          <img src="${e.target.result}" style="width: 100%; height: 100%; object-fit: cover;">
+          ${index === principalIndex ? '<span style="position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.7); color:#fff; font-size:9px; text-align:center;">Principal</span>' : ''}
+        `;
+
+        // Evento para cambiar la foto principal al hacer clic en la miniatura
+        div.addEventListener('click', () => {
+          principalIndex = index;
+          inputPrincipal.value = principalIndex;
+          renderPreviews();
+        });
+
+        photosContainer.appendChild(div);
+      }
+      reader.readAsDataURL(file);
+    });
+  }
+</script>
 {% endblock %}

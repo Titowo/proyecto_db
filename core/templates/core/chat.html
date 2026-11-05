@@ -1,76 +1,94 @@
 {% extends 'core/base.html' %}
 {% load static %}
 
-{% block title %}Mensajes y Negociación - C2C Streetwear{% endblock %}
+{% block title %}Chat y Negociación - C2C Streetwear{% endblock %}
 {% block page_id %}chat{% endblock %}
 
 {% block content %}
-<div class="chat-container" style="display: grid; grid-template-columns: 320px 1fr; height: calc(100vh - 70px); background: #fff; border-top: 1px solid #e5e7eb;">
-  
-  <!-- Sidebar de Conversaciones -->
-  <aside style="border-right: 1px solid #e5e7eb; overflow-y: auto; background: #fafafa;">
-    <div style="padding: 16px; font-weight: 800; border-bottom: 1px solid #e5e7eb; font-size: 16px;">Conversaciones</div>
-    <div class="chat-list">
+<div class="chat-container">
+  <!-- Lista de chats -->
+  <aside class="chat-sidebar">
+    <div class="sidebar-header">Mensajes</div>
+    <div class="chat-list" id="threads">
       {% for c in chats_usuario %}
-        <a href="{% url 'chat_detalle' c.id %}" style="display: flex; gap: 12px; padding: 14px 16px; text-decoration: none; color: inherit; border-bottom: 1px solid #f3f4f6; {% if chat_actual and c.id == chat_actual.id %}background: #eef2ff;{% endif %}">
-          <div style="width: 45px; height: 45px; background: #e5e7eb; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #4b5563;">
-            {{ c.vendedor.username|slice:"1:2"|upper }}
-          </div>
-          <div style="overflow: hidden; flex-grow: 1;">
-            <div style="display: flex; justify-content: space-between; align-items: baseline;">
-              <h4 style="font-size: 14px; margin: 0; font-weight: 700; color: #111;">{{ c.vendedor.username }}</h4>
-            </div>
-            <p style="font-size: 12px; color: #666; margin: 4px 0 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-              📦 {{ c.articulo_resumen.nombre }}
-            </p>
-          </div>
-        </a>
+      <a href="{% url 'chat_detalle' c.id %}" class="chat-item {% if chat_actual and c.id == chat_actual.id %}active{% endif %}">
+        <img src="{% if c.articulo_resumen.url_portada %}{{ c.articulo_resumen.url_portada }}{% endif %}" alt="{{ c.articulo_resumen.nombre }}">
+        <div>
+          <h4>{{ c.vendedor.nombre_usuario }}</h4>
+          <p>{{ c.articulo_resumen.nombre }} - ${{ c.articulo_resumen.precio_publicado|floatformat:0 }}</p>
+          <span class="st">{{ c.estado }}</span>
+        </div>
+      </a>
       {% empty %}
-        <div style="padding: 20px; text-align: center; color: #666; font-size: 13px;">No tienes conversaciones activas.</div>
+      <div style="padding: 20px; text-align: center; color: #666; font-size: 13px;">No tienes conversaciones activas.</div>
       {% endfor %}
     </div>
   </aside>
 
-  <!-- Panel Principal de Mensajes -->
-  <main style="display: flex; flex-direction: column; height: 100%; background: #fff;">
+  <!-- Chat -->
+  <main class="chat-main">
     {% if chat_actual %}
-      <!-- Cabecera del Chat / Resumen del Artículo -->
-      <div style="padding: 12px 20px; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; background: #fff;">
-        <div style="display: flex; align-items: center; gap: 12px;">
-          <img src="{{ chat_actual.articulo_resumen.url_portada }}" alt="Portada" style="width: 40px; height: 40px; object-fit: cover; border-radius: 6px;">
-          <div>
-            <h3 style="font-size: 14px; margin: 0; font-weight: 700;">{{ chat_actual.articulo_resumen.nombre }}</h3>
-            <span style="font-size: 13px; color: var(--accent); font-weight: 700;">Oferta actual: ${{ chat_actual.oferta_actual|default:chat_actual.articulo_resumen.precio_publicado }}</span>
-          </div>
+    <!-- Cabecera del Chat / Resumen del Artículo -->
+    <div class="article-context">
+      <div class="article-info">
+        <a href="{% url 'producto' chat_actual.id_articulo.id %}">
+          <img id="art-img" src="{% if chat_actual.articulo_resumen.url_portada %}{{ chat_actual.articulo_resumen.url_portada }}{% endif %}" alt="Artículo">
+        </a>
+        <div class="article-details">
+          <h3 id="art-title">{{ chat_actual.articulo_resumen.nombre }}</h3>
+          <p id="art-meta">Precio: ${{ chat_actual.articulo_resumen.precio_publicado|floatformat:0 }}</p>
+          <p id="art-with">Chat con {{ chat_actual.vendedor.nombre_usuario }}</p>
         </div>
-        <div>
-          <span class="tag" style="background: #f3f4f6; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600;">Estado: {{ chat_actual.estado }}</span>
-        </div>
       </div>
+      <div class="transaction-panel" id="panel">
+        <!-- Will be populated by JS -->
+      </div>
+    </div>
 
-      <!-- Historial de Mensajes -->
-      <div id="message-box" style="flex-grow: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; background: #f9fafb;">
-        {% for m in chat_actual.mensajes %}
-          <div style="max-width: 65%; padding: 10px 14px; border-radius: 8px; font-size: 14px; line-height: 1.4; {% if m.id_usuario == usuario_actual.id %}align-self: flex-end; background: #111; color: #fff;{% else %}align-self: flex-start; background: #fff; color: #111; border: 1px solid #e5e7eb;{% endif %}">
-            <p style="margin: 0;">{{ m.contenido }}</p>
-            <span style="font-size: 10px; display: block; margin-top: 4px; text-align: right; opacity: 0.7;">{{ m.fecha_envio|date:"H:i" }}</span>
-          </div>
-        {% endfor %}
+    <div class="chat-messages" id="msgs">
+      {% for m in chat_actual.mensajes %}
+      <div class="message {% if m.id_usuario == usuario_actual.id %}msg-sent{% else %}msg-received{% endif %}">
+        {{ m.contenido }}<span class="time">{{ m.fecha_envio|date:"H:i" }}</span>
       </div>
+      {% endfor %}
+    </div>
 
-      <!-- Barra Inferior para Enviar Mensajes -->
-      <div style="padding: 16px; border-top: 1px solid #e5e7eb; background: #fff;">
-        <form method="POST" style="display: flex; gap: 10px;">
-          {% csrf_token %}
-          <input type="text" name="contenido_mensaje" placeholder="Escribe un mensaje o contraoferta..." style="flex-grow: 1; padding: 10px 14px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; outline: none;" required>
-          <button type="submit" class="btn accent" style="padding: 0 20px;">Enviar</button>
-        </form>
-      </div>
+    <!-- Barra Inferior para Enviar Mensajes -->
+    <form class="chat-input" id="form" method="POST">
+      {% csrf_token %}
+      <input type="text" id="text" name="contenido_mensaje" placeholder="Escribe un mensaje..." autocomplete="off" required>
+      <button type="submit" class="send">Enviar</button>
+    </form>
     {% else %}
-      <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666;">
-        Selecciona una conversación para comenzar a negociar.
-      </div>
+    <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666;">
+      Selecciona una conversación para comenzar a negociar.
+    </div>
     {% endif %}
   </main>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Quick messages
+  var quick = document.getElementById('quick');
+  if(quick) {
+    var buyerQuick = ['¿Sigue disponible?', '¿Dónde haces la entrega?', '¿Tienes más fotos?'];
+    buyerQuick.forEach(function(msg) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = msg;
+      btn.dataset.q = msg;
+      quick.appendChild(btn);
+    });
+    document.addEventListener('click', function(e) {
+      if(e.target.dataset.q) {
+        var form = document.getElementById('form');
+        var input = form.querySelector('input[name="contenido_mensaje"]');
+        input.value = e.target.dataset.q;
+        form.submit();
+      }
+    });
+  }
+</script>
 {% endblock %}

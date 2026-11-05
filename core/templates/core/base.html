@@ -9,25 +9,44 @@
 </head>
 <body class="page-{% block page_id %}home{% endblock %}">
 
+  <!-- Header de navegación principal (Idéntico al mockup y data.js) -->
   <!-- Header de navegación principal -->
   <header class="site-header">
-    <div class="header-inner">
-      <a href="{% url 'catalogo' %}" class="logo">
-        <span class="c2c">C2C</span> <span class="streetwear">STREETWEAR</span>
-      </a>
+    <a class="logo" href="{% url 'catalogo' %}">C2C <span>Streetwear</span></a>
+    
+    <form class="search-bar" action="{% url 'catalogo' %}" method="GET">
+      <input type="text" name="q" placeholder="Buscar zapatillas, polerones..." value="{{ request.GET.q|default:'' }}">
+      <button type="submit">Buscar</button>
+    </form>
+    
+    <nav class="nav-links">
+      <a href="{% url 'catalogo' %}" class="{% if page_id == 'catalogo' %}active{% endif %}">Catálogo</a>
       
-      <form action="{% url 'catalogo' %}" method="GET" class="search-bar">
-        <input type="text" name="q" placeholder="Buscar zapatillas, polerones..." value="{{ request.GET.q }}">
-        <button type="submit" class="btn small accent">Buscar</button>
-      </form>
-
-      <nav class="nav-links">
-        <a href="{% url 'catalogo' %}">Catálogo</a>
-        <a href="{% url 'carrito' %}">Carrito</a>
-        <a href="{% url 'chat' %}">Mensajes</a>
-        <a href="{% url 'publicar' %}" class="btn small accent" style="color: #000; font-weight: 700;">Publicar</a>
-      </nav>
-    </div>
+      <!-- Mostramos el menú completo si hay sesión o si quieres forzarlo para pruebas -->
+      {% if request.session.id_usuario or True %}
+        <div class="dropdown" id="menu-dd">
+          <button type="button" class="dd-btn {% if page_id == 'favoritos' or page_id == 'carrito' or page_id == 'chat' or page_id == 'publicar' or page_id == 'admin' %}active{% endif %}" id="menu-btn" aria-haspopup="true" aria-expanded="false">
+            Menú ▾<span class="badge" id="badge-menu">0</span>
+          </button>
+          <div class="dd-menu" id="menu-list" role="menu">
+            <a href="{% url 'carrito' %}#favoritos" role="menuitem">♡ Favoritos <span class="count" id="badge-fav">0</span></a>
+            <a href="{% url 'carrito' %}" role="menuitem" class="{% if page_id == 'carrito' %}active{% endif %}">Carrito <span class="count" id="badge-cart">0</span></a>
+            <a href="{% url 'chat' %}" role="menuitem" class="{% if page_id == 'chat' %}active{% endif %}">Mensajes</a>
+            <a href="{% url 'publicar' %}" role="menuitem" class="{% if page_id == 'publicar' %}active{% endif %}">Publicar artículo</a>
+            <a href="#" role="menuitem" class="dd-only-mobile" onclick="document.getElementById('logout-form').submit(); return false;">Cerrar sesión</a>
+          </div>
+        </div>
+        
+        <a href="{% url 'perfil' %}" class="btn-login {% if page_id == 'perfil' %}active{% endif %}">Mi Perfil</a>
+        
+        <form action="{% url 'logout' %}" method="POST" id="logout-form" style="display:inline;">
+          {% csrf_token %}
+          <button type="button" class="link-btn logout" onclick="document.getElementById('logout-form').submit();">Cerrar sesión</button>
+        </form>
+      {% else %}
+        <a href="{% url 'login' %}" class="btn-login">Iniciar Sesión</a>
+      {% endif %}
+    </nav>
   </header>
 
   <!-- Contenido principal dinámico -->
@@ -35,6 +54,32 @@
     {% block content %}{% endblock %}
   </main>
 
-  {% block scripts %}{% endblock %}
+  {% block scripts %}
+  <script src="{% static 'core/js/data.js' %}"></script>
+  <script>
+    /* Control idéntico al mockup para el despliegue del menú y manejo de la tecla Escape */
+    function closeMenu() {
+      const dd = document.getElementById('menu-dd'), b = document.getElementById('menu-btn');
+      if (dd) dd.classList.remove('open');
+      if (b) b.setAttribute('aria-expanded', 'false');
+    }
+    
+    document.addEventListener('click', (e) => {
+      const dd = document.getElementById('menu-dd');
+      if (!dd) return;
+      const btn = e.target.closest('#menu-btn');
+      if (btn) {
+        const open = dd.classList.toggle('open');
+        btn.setAttribute('aria-expanded', open);
+        return;
+      }
+      if (!e.target.closest('#menu-list')) closeMenu();
+    });
+    
+    document.addEventListener('keydown', (e) => { 
+      if (e.key === 'Escape') closeMenu(); 
+    });
+  </script>
+  {% endblock %}
 </body>
 </html>

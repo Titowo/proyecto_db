@@ -8,13 +8,13 @@
 <div class="page">
   <!-- Cabecera de perfil -->
   <div class="profile-hero">
-    <div class="avatar" id="h-avatar" style="width: 84px; height: 84px; font-size: 34px; background:var(--primary); color:var(--accent); border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:900;">U</div>
-    <div class="grow" style="flex:1;">
-      <h1 id="h-name">Mi Usuario</h1>
-      <div class="handle" id="h-handle">@usuario_test</div>
+    <div class="avatar" id="h-avatar">{{ user.nombre1|default:"U"|slice:"0:1"|upper }}</div>
+    <div class="grow">
+      <h1 id="h-name">{{ user.nombre1|default:"Usuario" }} {{ user.apellido1|default:"" }}</h1>
+      <div class="handle" id="h-handle">{{ user.nombre_usuario|default:"@usuario" }}</div>
     </div>
     <button class="btn secondary" id="btn-edit">Editar perfil</button>
-    <button class="btn" id="btn-logout" style="margin-left: 10px; background: var(--danger); color: white; border: none;">Cerrar Sesion</button>
+    <button class="btn" id="btn-logout" style="margin-left: 10px; background: var(--danger); color: white; border: none;" onclick="window.location.href='/logout/';">Cerrar Sesion</button>
   </div>
 
   <!-- Selector de vista -->
@@ -23,31 +23,56 @@
       <button class="tab active" id="v-buyer">Vista Comprador</button>
       <button class="tab" id="v-seller">Vista Vendedor</button>
     </div>
-    <span class="muted" style="font-size:12px">Una misma cuenta puede comprar y vender.</span>
   </div>
 
   <!-- Vista comprador -->
   <section id="buyer-view">
+    <div class="stats">
+      <div class="stat"><b>{{ compras_count|default:0 }}</b><span>Compras</span></div>
+      <div class="stat"><b>{{ favoritos_count|default:0 }}</b><span>Favoritos</span></div>
+      <div class="stat"><b>{{ carritos_count|default:0 }}</b><span>Carritos activos</span></div>
+      <div class="stat"><b>4.8 ★</b><span>Reputación</span></div>
+    </div>
     <div class="panel">
-      <h3 style="border-bottom: 2px solid var(--primary); padding-bottom:10px; margin-bottom:10px;">Mis compras</h3>
-      <div id="b-orders" style="color:var(--muted); font-size:14px;">Aún no tienes compras.</div>
+      <h3>Mis compras</h3>
+      <div class="body muted">Aún no tienes compras.</div>
     </div>
   </section>
 
   <!-- Vista vendedor -->
   <section id="seller-view" style="display:none">
-    <!-- !!! AQUI ESTA LA CORRECCION DEL BUG !!! -->
-    <div class="panel">
-      <h3 style="border-bottom: 2px solid var(--primary); padding-bottom:10px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
-        Mis publicaciones 
-        <a class="btn small accent" href="{% url 'publicar' %}">+ Nueva publicación</a>
-      </h3>
-      <div id="s-list" style="color:var(--muted); font-size:14px;">No tienes publicaciones.</div>
+    <div class="stats">
+      <div class="stat"><b>{{ publicaciones|length|default:0 }}</b><span>Publicaciones activas</span></div>
+      <div class="stat"><b>{{ publicaciones|length|default:0 }}</b><span>Unidades en stock</span></div>
+      <div class="stat"><b>0</b><span>Ventas totales</span></div>
+      <div class="stat"><b>$0</b><span>Total vendido</span></div>
+      <div class="stat"><b>5.0 ★</b><span>Valoración</span></div>
     </div>
-    
     <div class="panel">
-      <h3 style="border-bottom: 2px solid var(--primary); padding-bottom:10px; margin-bottom:10px;">Ventas recientes</h3>
-      <div id="s-sales" style="color:var(--muted); font-size:14px;">Aún no registras ventas.</div>
+      <h3>Mis publicaciones <a class="btn small accent" href="{% url 'publicar' %}">+ Nueva publicación</a></h3>
+      {% if publicaciones %}
+        {% for art in publicaciones %}
+        <div class="list-row" style="grid-template-columns:64px 1fr auto" data-id="{{ art.id }}">
+          <a href="{% url 'producto' art.id %}">
+            <img src="{% if art.fotos %}{{ art.fotos.0.url_imagen }}{% endif %}" alt="">
+          </a>
+          <div>
+            <h4>{{ art.marca }} {{ art.nombre }}</h4>
+            <div class="sub">Talla {{ art.talla }} · {{ art.estado_conservacion }}</div>
+            <div class="sub" style="margin-top:6px">
+              Precio ${{ art.precio }} · Stock {{ art.stock }}
+            </div>
+          </div>
+          <div class="end">
+            <span class="tag {% if art.estado_publicacion == 'Activo' %}ok{% endif %}">{{ art.estado_publicacion }}</span>
+            <br>
+            <button class="link-btn btn-delete" data-id="{{ art.id }}" style="margin-top:8px; color: var(--danger);">Eliminar</button>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="body muted">No tienes publicaciones. <a href="{% url 'publicar' %}" style="text-decoration:underline;font-weight:bold">Crea la primera</a>.</div>
+      {% endif %}
     </div>
   </section>
 </div>
@@ -55,14 +80,65 @@
 
 {% block scripts %}
 <script>
-  const $ = (id) => document.getElementById(id);
   function setView(v) {
-    $('buyer-view').style.display = v === 'buyer' ? '' : 'none';
-    $('seller-view').style.display = v === 'seller' ? '' : 'none';
-    $('v-buyer').classList.toggle('active', v === 'buyer');
-    $('v-seller').classList.toggle('active', v === 'seller');
+    document.getElementById('buyer-view').style.display = v === 'buyer' ? '' : 'none';
+    document.getElementById('seller-view').style.display = v === 'seller' ? '' : 'none';
+    document.getElementById('v-buyer').classList.toggle('active', v === 'buyer');
+    document.getElementById('v-seller').classList.toggle('active', v === 'seller');
+    history.replaceState(null, '', '#' + v);
   }
-  $('v-buyer').onclick = () => setView('buyer');
-  $('v-seller').onclick = () => setView('seller');
+  document.getElementById('v-buyer').onclick = function() { setView('buyer'); };
+  document.getElementById('v-seller').onclick = function() { setView('seller'); };
+
+  document.getElementById('btn-edit').onclick = function() {
+    alert('Edición de perfil no implementada en esta versión.');
+  };
+
+  // Eliminar artículo
+  document.querySelectorAll('.btn-delete').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      const id = this.dataset.id;
+      const row = this.closest('.list-row');
+      
+      if (confirm('¿Estás seguro de que quieres eliminar esta publicación?')) {
+        fetch(`/Eliminar articulo/${id}/`, {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json'
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            row.remove();
+            alert('Artículo eliminado correctamente');
+          } else {
+            alert('Error: ' + (data.error || 'No se pudo eliminar'));
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('Error al eliminar el artículo');
+        });
+      }
+    });
+  });
+
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
 </script>
 {% endblock %}

@@ -1,161 +1,420 @@
-from django.shortcuts import get_object_or_404, render
-from .models import Articulo, Categoria, Usuario, Chat, UsuarioRef, CategoriaRef, FotoArticulo
+from django.shortcuts import render, redirect
+from django.http import HttpResponse, JsonResponse
+from django.views.decorators.http import require_POST
+from django.contrib import messages
+from .models import Articulo, Usuario, Chat, Venta, Reporte, CategoriaRef, VendedorRef, FotoArticulo
+from bson import ObjectId
+from bson.errors import InvalidId
+import base64
 
 def catalogo(request):
-    cat_id = request.GET.get('categoria')
-    precio_max = request.GET.get('max', 300000)
-    busqueda = request.GET.get('q', '')
+    mensaje = None
     
-    query = {"estado_publicacion": "Disponible"}
-    if cat_id:
-        query["categoria__id_categoria"] = cat_id
-    if precio_max:
-        query["precio__lte"] = float(precio_max)
-    if busqueda:
-        query["nombre__icontains"] = busqueda
-        
-    articulos = Articulo.objects(**query)
-    categorias = Categoria.objects.all()
+    # =====================================================================
+    # 1. OBTENER CATEGORÍAS DIRECTO CON PYMONGO
+    # =====================================================================
+    pipeline = [
+        {"$match": {"estado_publicacion": {"$ne": "Vendido"}}},
+        {"$group": {
+            "_id": "$categoria.id_categoria", 
+            "nombre": {"$first": "$categoria.nombre"}
+        }}
+    ]
     
-    return render(request, 'core/catalogo.html', {
+    coleccion = Articulo._get_collection()
+    categorias_crudas = list(coleccion.aggregate(pipeline))
+    
+    categorias = []
+    for cat in categorias_crudas:
+        if cat.get('_id'): 
+            categorias.append({
+                'id_categoria': str(cat['_id']),
+                'id': str(cat['_id']), 
+                'nombre': cat.get('nombre', 'Sin Nombre')
+            })
+
+    # =====================================================================
+    # 2. OBTENER TODOS LOS ARTÍCULOS NO VENDIDOS
+    # =====================================================================
+    articulos = Articulo.objects(estado_publicacion__ne='Vendido')
+
+    # =====================================================================
+    # 3. FILTRADO EN PYTHON (porque precio es StringField)
+    # =====================================================================
+    if request.GET:
+        categoria_id = request.GET.get('categoria')
+        precio_min = request.GET.get('precio_min')
+        precio_max = request.GET.get('precio_max')
+
+        if categoria_id and precio_min and precio_max:
+            try:
+                precio_min_float = float(precio_min)
+                precio_max_float = float(precio_max)
+                
+                if precio_min_float > precio_max_float:
+                    mensaje = "El precio mínimo no puede ser mayor al máximo."
+                else:
+                    filtrados = []
+                    for p in articulos:
+                        if p.categoria and str(p.categoria.id_categoria) != str(categoria_id):
+                            continue
+                        try:
+                            precio = float(p.precio) if p.precio else 0
+                            if precio < precio_min_float or precio > precio_max_float:
+                                continue
+                        except (ValueError, TypeError):
+                            continue
+                        talla = request.GET.get('talla')
+                        if talla and p.talla != talla:
+                            continue
+                        marca = request.GET.get('marca')
+                        if marca and p.marca != marca:
+                            continue
+                        estado = request.GET.get('estado_conservacion')
+                        if estado and p.estado_conservacion != estado:
+                            continue
+                        filtrados.append(p)
+                    
+                    articulos = filtrados
+                    
+                    if not articulos:
+                        mensaje = "No encontramos artículos que coincidan con esos filtros."
+                        
+            except (ValueError, InvalidId):
+                articulos = []
+        else:
+            mensaje = "Debes seleccionar una categoría y el rango de precios para filtrar."
+
+    context = {
         'articulos': articulos,
-        'categorias': categorias
-    })
-
-def producto_detalle(request, articulo_id):
-    p = Articulo.objects(id=articulo_id).first()
-    if not p:
-        raise Http404("El artículo no existe")
-    relacionados = Articulo.objects(id__ne=p.id, vendedor__id_usuario=p.vendedor.id_usuario)[:4]
-    return render(request, 'core/producto.html', {'p': p, 'relacionados': relacionados})
+        'categorias': categorias,
+        'mensaje': mensaje
+    }
+    return render(request, 'core/catalogo.html', context)
 
 
-def chat(request, chat_id=None):
-    # Si no se pasa un id de chat, tomamos el primero de la base de datos como ejemplo
-    if chat_id:
-        chat_actual = Chat.objects(id=chat_id).first()
-    else:
-        chat_actual = Chat.objects().first()
+def producto(request, id):
+    try:
+        p = Articulo.objects(id=ObjectId(id)).first()
+        if not p:
+            return HttpResponse("Artículo no encontrado", status=404)
         
-    # Simulamos el usuario actual logueado (ej. el primer usuario de la BD)
-    usuario_actual = Usuario.objects().first()
-    
-    # Listado de chats donde participa el usuario actual (como comprador o vendedor)
-    chats_usuario = []
-    if usuario_actual:
-        chats_usuario = Chat.objects(
-            __raw__={
-                "$or": [
-                    {"comprador.id_usuario": usuario_actual.id},
-                    {"vendedor.id_usuario": usuario_actual.id}
-                ]
-            }
-        )
-
-    return render(request, 'core/chat.html', {
-        'chat_actual': chat_actual,
-        'chats_usuario': chats_usuario,
-        'usuario_actual': usuario_actual
-    })
-
-def perfil(request):
-    return render(request, 'core/perfil.html')
-
-def publicar(request):
-    if request.method == 'POST':
-        # Obtenemos los datos del formulario HTML
-        nombre = request.POST.get('nombre')
-        descripcion = request.POST.get('descripcion')
-        precio = request.POST.get('precio')
-        stock = request.POST.get('stock', 1)
-        talla = request.POST.get('talla')
-        marca = request.POST.get('marca')
-        estado_conservacion = request.POST.get('estado_conservacion')
-
-        categoria_id = request.POST.get('categoria')
-        url_imagen = request.POST.get('url_imagen', 'https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=600&q=80')
+        relacionados = Articulo.objects(
+            estado_publicacion__ne='Vendido',
+            id__ne=ObjectId(id)
+        ).limit(4)
         
-        # Obtenemos el usuario actual de prueba
-        usuario_actual = Usuario.objects().first()
-        categoria_obj = Categoria.objects(id=categoria_id).first()
-        
-        if usuario_actual and categoria_obj:
-            # Creamos las referencias embebidas requeridas por el modelo
-            vendedor_ref = UsuarioRef(
-                id_usuario=usuario_actual.id,
-                username=usuario_actual.username,
-                nombre1=usuario_actual.nombre1,
-                apellido1=usuario_actual.apellido1,
-                reputacion=usuario_actual.reputacion.como_vendedor.promedio if usuario_actual.reputacion and usuario_actual.reputacion.como_vendedor else None
-            )
-            
-            categoria_ref = CategoriaRef(
-                id_categoria=categoria_obj.id,
-                nombre=categoria_obj.nombre
-            )
-            
-            foto_principal = FotoArticulo(
-                id_foto=1,
-                url_imagen=url_imagen,
-                es_principal=True
-            )
-            
-            # Guardamos el nuevo artículo en MongoDB
-            Articulo(
-                nombre=nombre,
-                descripcion=descripcion,
-                precio=float(precio),
-                stock=int(stock),
-                talla=talla,
-                marca=marca,
-                estado_conservacion=estado_conservacion,
-                estado_publicacion='Disponible',
-                categoria=categoria_ref,
-                vendedor=vendedor_ref,
-                fotos=[foto_principal]
-            ).save()
-            
-            return redirect('catalogo')
-            
-    # Si es GET, cargamos las categorías disponibles en la BD
-    categorias = Categoria.objects.all()
-    return render(request, 'core/publicar.html', {'categorias': categorias})
+        context = {
+            'p': p,
+            'relacionados': relacionados
+        }
+        return render(request, 'core/producto.html', context)
+    except InvalidId:
+        return HttpResponse("ID inválido", status=400)
 
 
 def carrito(request):
-    # Simulamos el usuario actual (puedes adaptarlo luego con tu sesión o token)
-    # Por ahora tomamos al primer usuario de prueba de la base de datos
-    usuario = Usuario.objects().first()
+    usuario_actual = None
+    if hasattr(request, 'session'):
+        usuario_actual = request.session.get('id_usuario')
     
-    grupos_por_vendedor = {}
-    total_general = 0
+    user = None
+    favoritos = []
+    grupos = {}
     
-    if usuario and usuario.carrito:
-        for item in usuario.carrito:
-            # Buscamos el artículo real en la base de datos usando la referencia
-            articulo = Articulo.objects(id=item.id_articulo).first()
-            if articulo:
-                vendedor_nombre = articulo.vendedor.username
-                if vendedor_nombre not in grupos_por_vendedor:
-                    grupos_por_vendedor[vendedor_nombre] = []
-                
-                subtotal = float(articulo.precio) * item.cantidad
-                total_general += subtotal
-                
-                grupos_por_vendedor[vendedor_nombre].append({
-                    'p': articulo,
-                    'qty': item.cantidad,
-                    'subtotal': subtotal
-                })
-                
-    return render(request, 'core/carrito.html', {
-        'grupos': grupos_por_vendedor,
-        'total_general': total_general
-    })
+    if usuario_actual:
+        user = Usuario.objects(id=ObjectId(usuario_actual)).first()
+    
+    context = {
+        'grupos': grupos,
+        'favoritos': favoritos,
+        'favoritos_count': 0
+    }
+    return render(request, 'core/carrito.html', context)
+
+
+def chat_view(request):
+    usuario_actual = None
+    if hasattr(request, 'session'):
+        usuario_actual = request.session.get('id_usuario')
+    
+    chats_usuario = []
+    chat_actual = None
+    
+    if usuario_actual:
+        chats_usuario = Chat.objects(id_comprador=ObjectId(usuario_actual))
+        chat_id = request.GET.get('id')
+        if chat_id:
+            chat_actual = Chat.objects(id=ObjectId(chat_id), id_comprador=ObjectId(usuario_actual)).first()
+    
+    context = {
+        'chats_usuario': chats_usuario,
+        'chat_actual': chat_actual,
+        'usuario_actual': Usuario(id=ObjectId(usuario_actual)) if usuario_actual else None
+    }
+    return render(request, 'core/chat.html', context)
+
+
+def chat_detalle(request, id_chat):
+    usuario_actual = None
+    if hasattr(request, 'session'):
+        usuario_actual = request.session.get('id_usuario')
+    
+    try:
+        chat_actual = Chat.objects(id=ObjectId(id_chat)).first()
+        if not chat_actual:
+            return HttpResponse("Chat no encontrado", status=404)
+        
+        context = {
+            'chat_actual': chat_actual,
+            'usuario_actual': Usuario(id=ObjectId(usuario_actual)) if usuario_actual else None
+        }
+        return render(request, 'core/chat.html', context)
+    except InvalidId:
+        return HttpResponse("ID inválido", status=400)
+
+
+def perfil(request):
+    usuario_actual = None
+    if hasattr(request, 'session'):
+        usuario_actual = request.session.get('id_usuario')
+    
+    if not usuario_actual:
+        return redirect('/login/')
+    
+    user = Usuario.objects(id=ObjectId(usuario_actual)).first()
+    
+    # Obtener publicaciones del usuario
+    publicaciones = Articulo.objects(vendedor__id_usuario=str(user.id)).order_by('-fecha_publicacion')
+    
+    context = {
+        'user': user,
+        'compras_count': 0,
+        'favoritos_count': 0,
+        'carritos_count': 0,
+        'publicaciones_count': 0,
+        'ventas_totales': 0,
+        'ventas_total': 0,
+        'unidades_stock': 0,
+        'pendientes': 0,
+        'revisados': 0,
+        'descartados': 0,
+        'total': 0,
+        'publicaciones': publicaciones
+    }
+    return render(request, 'core/perfil.html', context)
+
+
+def publicar(request):
+    usuario_actual = None
+    if hasattr(request, 'session'):
+        usuario_actual = request.session.get('id_usuario')
+    
+    if not usuario_actual:
+        return redirect('/login/')
+    
+    # Obtener usuario actual
+    user = Usuario.objects(id=ObjectId(usuario_actual)).first()
+    
+    if request.method == 'POST':
+        # Obtener datos del formulario
+        nombre = request.POST.get('nombre', '').strip()
+        descripcion = request.POST.get('descripcion', '').strip()
+        precio = request.POST.get('precio', '').strip()
+        stock = request.POST.get('stock', '').strip()
+        talla = request.POST.get('talla', '').strip()
+        marca = request.POST.get('marca', '').strip()
+        estado_conservacion = request.POST.get('estado_conservacion', '').strip()
+        categoria_nombre = request.POST.get('categoria', '').strip()
+        
+        # Validaciones básicas
+        if not all([nombre, descripcion, precio, stock, talla, marca, estado_conservacion, categoria_nombre]):
+            error = "Todos los campos son obligatorios"
+            # Re-obtener categorías para el template
+            coleccion = Articulo._get_collection()
+            pipeline = [{"$group": {"_id": "$categoria.nombre"}}]
+            categorias = [cat['_id'] for cat in coleccion.aggregate(pipeline)]
+            return render(request, 'core/publicar.html', {'categorias': categorias, 'error': error})
+        
+        # Procesar imágenes
+        fotos = []
+        archivos = request.FILES.getlist('fotos')
+        for i, archivo in enumerate(archivos):
+            if archivo and archivo.size > 0:
+                contenido = archivo.read()
+                b64 = base64.b64encode(contenido).decode('utf-8')
+                mime = archivo.content_type or 'image/jpeg'
+                data_url = f"data:{mime};base64,{b64}"
+                foto = FotoArticulo(
+                    url_imagen=data_url,
+                    es_principal=(i == 0)
+                )
+                fotos.append(foto)
+        
+        # Si no hay fotos, usar placeholder
+        if not fotos:
+            foto = FotoArticulo(
+                url_imagen="https://via.placeholder.com/400x400?text=Sin+Imagen",
+                es_principal=True
+            )
+            fotos.append(foto)
+        
+        # Crear categoría reference
+        categoria = CategoriaRef(
+            id_categoria=str(ObjectId()),
+            nombre=categoria_nombre
+        )
+        
+        # Crear vendedor reference
+        vendedor = VendedorRef(
+            id_usuario=str(user.id),
+            nombre_usuario=user.nombre_usuario
+        )
+        
+        # Crear artículo
+        articulo = Articulo(
+            nombre=nombre,
+            descripcion=descripcion,
+            precio=precio,
+            stock=stock,
+            talla=talla,
+            marca=marca,
+            estado_conservacion=estado_conservacion,
+            estado_publicacion='Activo',
+            vendedor=vendedor,
+            categoria=categoria,
+            fotos=fotos
+        )
+        articulo.save()
+        return redirect('/perfil/')
+    
+    # GET - mostrar formulario
+    coleccion = Articulo._get_collection()
+    pipeline = [{"$group": {"_id": "$categoria.nombre"}}]
+    categorias = [cat['_id'] for cat in coleccion.aggregate(pipeline)]
+    
+    context = {'categorias': categorias}
+    return render(request, 'core/publicar.html', context)
 
 
 def login_view(request):
+    has_session = hasattr(request, 'session')
+    if has_session and 'id_usuario' in request.session:
+        return redirect('/')
+    
+    if request.method == 'POST':
+        email = request.POST.get('email', '').strip().lower()
+        password = request.POST.get('password', '')
+        
+        user = Usuario.objects(email=email, contrasena=password).first()
+        
+        if user:
+            if has_session:
+                request.session['id_usuario'] = str(user.id)
+                request.session['nombre_usuario'] = user.nombre_usuario
+                request.session['email'] = user.email
+                request.session.save()
+            return redirect('/')
+        else:
+            error = "Correo o contraseña incorrectos"
+            return render(request, 'core/login.html', {'error': error})
+    
     return render(request, 'core/login.html')
 
+
+def register_view(request):
+    if request.method == 'POST':
+        email = request.POST.get('email', '').strip().lower()
+        nombre_usuario = request.POST.get('nombre_usuario', '').strip()
+        
+        # Valores del formulario para rellenar si hay error
+        form_values = {
+            'reg_nombre1': request.POST.get('nombre1', ''),
+            'reg_nombre2': request.POST.get('nombre2', ''),
+            'reg_apellido1': request.POST.get('apellido1', ''),
+            'reg_apellido2': request.POST.get('apellido2', ''),
+            'reg_usuario': nombre_usuario,
+            'reg_email': email,
+        }
+        
+        # Verificar si el email ya existe
+        if Usuario.objects(email=email).first():
+            error = "Ese correo ya está registrado"
+            return render(request, 'core/login.html', {'error': error, 'show_register': True, **form_values})
+        
+        # Verificar si el nombre de usuario ya existe
+        if Usuario.objects(nombre_usuario=nombre_usuario).first():
+            error = "Ese @usuario ya está en uso"
+            return render(request, 'core/login.html', {'error': error, 'show_register': True, **form_values})
+        
+        # Crear usuario
+        usuario = Usuario(
+            nombre1=request.POST.get('nombre1', ''),
+            nombre2=request.POST.get('nombre2', ''),
+            apellido1=request.POST.get('apellido1', ''),
+            apellido2=request.POST.get('apellido2', ''),
+            nombre_usuario=nombre_usuario,
+            correo=email,
+            email=email,
+            contrasena=request.POST.get('password', ''),
+            estado_cuenta='Activo'
+        )
+        usuario.save()
+        return redirect('/login/')
+    return render(request, 'core/login.html')
+
+
 def admin_view(request):
-    return render(request, 'core/admin.html')
+    usuario_actual = None
+    if hasattr(request, 'session'):
+        usuario_actual = request.session.get('id_usuario')
+    
+    if not usuario_actual:
+        return redirect('/login/')
+    
+    user = Usuario.objects(id=ObjectId(usuario_actual)).first()
+    
+    if user is None or user.email != 'admin@c2c.cl':
+        return HttpResponse("Acceso restringido", status=403)
+    
+    reportes = Reporte.objects().order_by('-fecha')
+    context = {
+        'reportes': reportes,
+        'pendientes': Reporte.objects(estado='Pendiente').count(),
+        'revisados': Reporte.objects(estado='Revisado').count(),
+        'descartados': Reporte.objects(estado='Descartado').count(),
+        'total': reportes.count()
+    }
+    return render(request, 'core/admin.html', context)
+
+
+def eliminar_articulo(request, id):
+    """Eliminar un artículo del vendedor actual"""
+    usuario_actual = None
+    if hasattr(request, 'session'):
+        usuario_actual = request.session.get('id_usuario')
+    
+    if not usuario_actual:
+        return redirect('/login/')
+    
+    # Verificar que el artículo pertenece al usuario actual
+    try:
+        articulo = Articulo.objects(id=ObjectId(id)).first()
+        if not articulo:
+            return JsonResponse({'error': 'Artículo no encontrado'}, status=404)
+        
+        # Verificar que el artículo pertenece al usuario actual
+        if not articulo.vendedor or str(articulo.vendedor.id_usuario) != str(usuario_actual):
+            return JsonResponse({'error': 'No tienes permiso para eliminar este artículo'}, status=403)
+        
+        # Eliminar el artículo
+        articulo.delete()
+        return JsonResponse({'success': True, 'message': 'Artículo eliminado correctamente'})
+    except InvalidId:
+        return JsonResponse({'error': 'ID inválido'}, status=400)
+
+
+def logout_view(request):
+    if hasattr(request, 'session') and 'id_usuario' in request.session:
+        del request.session['id_usuario']
+    return redirect('/')
