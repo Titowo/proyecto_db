@@ -1,35 +1,43 @@
-# Plataforma Web C2C para Moda Urbana (Streetwear)
+# Proyecto DB - Streetwear C2C (Versión MongoDB)
 
-Este proyecto corresponde a la Etapa 1 de la Asignatura ICI324 - Bases de Datos y Programación Web. Es una plataforma e-commerce tipo marketplace C2C diseñada para centralizar el catálogo de moda urbana entre particulares, automatizar el filtrado de productos y facilitar transacciones seguras mediante un chat integrado.
+Plataforma e-commerce C2C (Consumer-to-Consumer) enfocada en la compra y venta de ropa *streetwear*. Esta rama del proyecto está adaptada para utilizar **MongoDB** como motor de base de datos principal, integrando todo el flujo de ventas, gestión de usuarios y catálogo mediante Django.
 
-**Desarrollado por el Grupo N° 14:** Pedro Jeria, Diego Valenzuela y Anais Muñoz.
-## Stack Tecnológico
-* **Backend:** Python 3.9+ / Django 5.x
-* **Base de Datos:** PostgreSQL 15+ (vía OrbStack / Docker) / Django ORM
-* **Frontend:** Plantillas HTML de Django (Arquitectura MVT)
+## 🚀 Características Principales
 
-## Estructura del Proyecto
+* **Catálogo y Productos:** Exploración de productos, vistas detalladas y sistema de publicación para vendedores.
+* **Carrito de Compras:** Gestión del carrito y procesamiento de ventas.
+* **Sistema de Usuarios:** Registro, login, perfiles de usuario y asignación de roles (administradores y clientes).
+* **Chat Integrado:** Comunicación directa dentro de la plataforma (`chat.html`).
+* **API RESTful:** Endpoints dedicados para consumo externo o asíncrono:
+  * `api_articulos.py`: Gestión de catálogo.
+  * `api_ventas.py`: Procesamiento de transacciones.
+  * `api_auth.py`: Autenticación de usuarios.
+* **Mockups Estáticos:** Carpeta independiente (`mockups/`) con las maquetas originales en HTML/CSS/JS.
 
-El código está estructurado separando las responsabilidades de la lógica del sistema, la base de datos y la interfaz, para asegurar una alta mantenibilidad
+## 🛠️ Stack Tecnológico
 
-* `core/models.py`: Implementación del Modelo Relacional con todas las entidades (Usuario, Artículo, Venta, Chat, etc.) e integridad referencial (CASCADE, RESTRICT, SET NULL).
-* `core/views.py`: Lógica principal de la aplicación, incluyendo el filtrado obligatorio (categoría y precio) y opcional del catálogo.
-* `core/views_ventas.py`: Módulo separado que maneja la lógica transaccional de las ventas y la actualización de stock en la base de datos.
-* `core/templates/core/`: Interfaces de usuario responsivas renderizadas desde el servidor.
-* `consultas_rubricas.sql`: Script exigido para la evaluación que contiene más de 10 consultas operativas (Selects con JOIN, CRUD, agrupaciones) que demuestran la trazabilidad del modelo.
-* `poblar_datos.sql`: Script SQL para la carga inicial de registros de prueba (usuarios, categorías, artículos).
-* `sincronizar_secuencias_postgres.sql`: Script de mantenimiento para sincronizar los índices autoincrementales (`AutoField`) de PostgreSQL tras la inserción manual de datos.
+* **Backend:** Python 3, Django
+* **Base de Datos:** MongoDB
+* **Frontend:** HTML5, CSS3, Vanilla JavaScript (sin frameworks pesados)
+* **Estilos:** Archivos estáticos modulares (`core/static/core/css/styles.css`)
 
-## Guía de Instalación y Despliegue Local
+## 📁 Estructura del Proyecto
 
-### 1. Clonar y preparar el entorno
+El código está organizado en las siguientes aplicaciones y directorios clave:
+
+* `streetwear_c2c/`: Configuración principal de Django (`settings.py`, `urls.py`, entorno asíncrono/síncrono).
+* `core/`: Aplicación principal que contiene la lógica de negocio.
+  * `models.py` / `views.py` / `urls.py`: Arquitectura MVT estándar de Django.
+  * `templates/core/`: Plantillas HTML (catálogo, carrito, login, perfil, producto, publicar, chat).
+  * `static/core/`: Assets estáticos (CSS, JS).
+  * Archivos `api_*.py`: Controladores de la API REST.
+* `mockups/`: Diseños frontend crudos de referencia.
+
+## ⚙️ Instalación y Configuración
+
+### 1. Clonar el repositorio y preparar el entorno
 ```bash
-git clone https://github.com/Titowo/proyecto_db.git
-cd streetwear_c2c
-
-# Crear y activar entorno virtual
-python3 -m venv venv
-source venv/bin/activate
-
-# Instalar dependencias (Django, psycopg2-binary, etc.)
-pip install -r requirements.txt
+git clone <tu-repositorio>
+cd proyecto_db-version-mongodb
+python -m venv venv
+source venv/bin/activate  # En Windows: venv\Scripts\activate
