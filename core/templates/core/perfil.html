@@ -137,13 +137,55 @@
       "buyer": "{{ v.comprador.nombre_usuario|escapejs }}",
       "qty": {{ v.cantidad|default:1 }},
       "unit": {{ v.precio_unitario|default:0 }},
-      "date": "{{ v.fecha_compra|date:'d-m-Y'|escapejs }}",
+      "date": "{{ v.fecha_compra|escapejs }}",
       "state": "{{ v.estado|default:'Entregada'|escapejs }}",
       "product": {
         "brand": "{{ v.producto.marca|escapejs }}",
         "title": "{{ v.producto.nombre|escapejs }}",
         "img": "{% if v.producto.fotos %}{{ v.producto.fotos.0.url_imagen|escapejs }}{% endif %}"
       }
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  ],
+  "compras": [
+    {% for c in compras_recientes %}
+    {
+      "productId": "{{ c.producto.id }}",
+      "seller": "{{ c.vendedor.nombre_usuario|escapejs }}",
+      "qty": {{ c.cantidad|default:1 }},
+      "unit": {{ c.precio_unitario|default:0 }},
+      "date": "{{ c.fecha_compra|escapejs }}",
+      "state": "{{ c.estado|default:'Entregada'|escapejs }}",
+      "product": {
+        "brand": "{{ c.producto.marca|escapejs }}",
+        "title": "{{ c.producto.nombre|escapejs }}",
+        "img": "{% if c.producto.fotos %}{{ c.producto.fotos.0.url_imagen|escapejs }}{% endif %}"
+      }
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  ],
+  "favoritos": [
+    {% for f in favoritos %}
+    {
+      "id": "{{ f.id }}",
+      "brand": "{{ f.brand|escapejs }}",
+      "title": "{{ f.title|escapejs }}",
+      "price": {{ f.price|default:0 }},
+      "seller": "{{ f.seller|escapejs }}",
+      "img": "{{ f.img|escapejs }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  ],
+  "carrito": [
+    {% for c in carrito %}
+    {
+      "id": "{{ c.id }}",
+      "brand": "{{ c.brand|escapejs }}",
+      "title": "{{ c.title|escapejs }}",
+      "price": {{ c.price|default:0 }},
+      "seller": "{{ c.seller|escapejs }}",
+      "img": "{{ c.img|escapejs }}",
+      "qty": {{ c.qty|default:1 }}
     }{% if not forloop.last %},{% endif %}
     {% endfor %}
   ]
@@ -178,6 +220,7 @@
   const prof = profileData.user;
   const publicaciones = profileData.publicaciones || [];
   const ventas = profileData.ventas || [];
+  const compras = profileData.compras || [];
   const reviews = reviewsData.reviews || [];
   
   const IS_DEMO = !window.currentUser || window.currentUser.email === 'test@c2c.cl';
@@ -199,26 +242,26 @@
   }
 
   function renderBuyer() {
-    const favs = JSON.parse(localStorage.getItem('c2c_favs') || '[]').map(id => publicaciones.find(p => String(p.id) === String(id))).filter(Boolean);
-    const carts = JSON.parse(localStorage.getItem('c2c_cart') || '{}');
+    const favs = profileData.favoritos || [];
+    const cartItems = profileData.carrito || [];
     const bySeller = {};
     let cartCount = 0;
-    Object.entries(carts).forEach(([id, q]) => {
-      const p = publicaciones.find(p => String(p.id) === String(id));
-      if (p) {
-        (bySeller[p.brand] = bySeller[p.brand] || []).push({ p, qty: q });
-        cartCount += Number(q);
-      }
+    
+    cartItems.forEach(item => {
+      // Agrupamos visualmente por el vendedor real (tu código original lo hacía por marca)
+      const sellerName = item.seller || 'Vendedor';
+      (bySeller[sellerName] = bySeller[sellerName] || []).push({ p: item, qty: item.qty });
+      cartCount += Number(item.qty);
     });
 
     document.getElementById('b-stats').innerHTML = [
-      [ventas.length, 'Compras'],
+      [compras.length, 'Compras'],
       [favs.length, 'Favoritos'],
       [Object.keys(bySeller).length, 'Carritos activos'],
       ['4.8 ★', 'Reputación como comprador']
     ].map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join('');
 
-    document.getElementById('b-orders').innerHTML = ventas.length ? ventas.map(o => {
+    document.getElementById('b-orders').innerHTML = compras.length ? compras.map(o => {
       return `<div class="list-row"><img src="${o.product.img}" alt=""><div><h4>${o.product.brand} ${o.product.title}</h4><div class="sub">${o.product.seller || 'Vendedor'} · ${o.date}</div></div>
         <div class="end"><div class="price">${fmt(o.qty * o.unit)}</div><span class="tag ok">${o.state}</span></div></div>`;
     }).join('') : '<div class="body muted">Aún no tienes compras.</div>';

@@ -18,7 +18,7 @@ DEBUG = True
 # Permitimos ngrok y conexiones locales para que el equipo pueda probar
 ALLOWED_HOSTS = ['*']
 # Reemplaza esta URL con la que te dé ngrok en el momento
-CSRF_TRUSTED_ORIGINS = ['https://tu-enlace-ngrok.ngrok-free.app'] 
+CSRF_TRUSTED_ORIGINS = ['https://eac4-186-11-117-105.ngrok-free.app'] 
 
 
 # ==============================================================================

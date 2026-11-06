@@ -303,27 +303,22 @@ def perfil(request):
     if usuario_actual:
         from .models import Venta, Chat
         
-        # Usar colección directamente para evitar el problema de joins
-        chats_collection = Chat._get_collection()
-        chats_cursor = chats_collection.find({'id_vendedor.id_usuario': str(user.id)})
+        chats = Chat.objects(id_vendedor=user)
         
-        for chat_doc in chats_cursor:
-            chat = Chat.objects(id=chat_doc['_id']).first()
-            if chat:
-                # Obtener ventas relacionadas a este chat
-                ventas = Venta.objects(id_chat=chat.id)
-                for v in ventas:
-                    for detalle in v.detalles:
-                        articulo = Articulo.objects(id=detalle.id_articulo).first()
-                        if articulo:
-                            ventas_recientes.append({
-                                'producto': articulo,
-                                'comprador': {'nombre_usuario': 'Cliente', 'id': str(user.id)},  # Placeholder
-                                'qty': detalle.cantidad_acordada,
-                                'unit': detalle.precio_unitario,
-                                'fecha_compra': v.fecha_compra,
-                                'estado': 'Entregada'
-                            })
+        for chat in chats:
+            ventas = Venta.objects(id_chat=chat.id)
+            for v in ventas: 
+                for detalle in v.detalles:
+                    articulo = Articulo.objects(id=detalle.id_articulo).first()
+                    if articulo:
+                        ventas_recientes.append({
+                            'producto': articulo,
+                            'comprador': {'nombre_usuario': chat.id_comprador.nombre_usuario if chat.id_comprador else 'Cliente'},
+                            'cantidad': detalle.cantidad_acordada,
+                            'precio_unitario': detalle.precio_unitario,
+                            'fecha_compra': v.fecha_compra,
+                            'estado': 'Entregada'
+                        })
         
         # Valoraciones - usar collection de ventas como almacen temporal
         ventas_coll = Venta._get_collection()
@@ -336,7 +331,70 @@ def perfil(request):
                     'stars': val.get('puntuacion', '5'),
                     'text': val.get('comentario', '')
                 })
-    
+        compras_recientes = []
+        chats_comprador = Chat.objects(id_comprador=user)
+        for chat in chats_comprador:
+            ventas = Venta.objects(id_chat=chat.id)
+            for v in ventas:
+                for detalle in v.detalles:
+                    articulo = Articulo.objects(id=detalle.id_articulo).first()
+                    if articulo:
+                        compras_recientes.append({
+                            'producto': articulo,
+                            'vendedor': {'nombre_usuario': chat.id_vendedor.nombre_usuario if chat.id_vendedor else 'Vendedor'},
+                            'cantidad': detalle.cantidad_acordada,
+                            'precio_unitario': detalle.precio_unitario,
+                            'fecha_compra': v.fecha_compra[:10],
+                            'estado': 'Entregada'
+                        })
+        favoritos_lista = []
+        if user.favoritos:
+            fav_ids = []
+            for f in user.favoritos:
+                try:
+                    fav_ids.append(ObjectId(f.id_articulo))
+                except InvalidId:
+                    pass
+                    
+            if fav_ids:
+                articulos_fav = Articulo.objects(id__in=fav_ids)
+                for a in articulos_fav:
+                    vend = a.vendedor
+                    favoritos_lista.append({
+                        'id': str(a.id),
+                        'brand': a.marca or '',
+                        'title': a.nombre or '',
+                        'price': _precio_a_int(a.precio),
+                        'seller': (vend.nombre_usuario or vend.username or 'Vendedor') if vend else 'Vendedor',
+                        'img': a.fotos[0].url_imagen if a.fotos else ''
+                    })
+        carrito_lista = []
+        if user.carrito:
+            cart_ids = []
+            cantidades = {}
+            for item in user.carrito:
+                try:
+                    oid = ObjectId(item.id_articulo)
+                    cart_ids.append(oid)
+                    # Guardamos la cantidad solicitada para usarla después
+                    cantidades[str(item.id_articulo)] = int(item.cantidad) if str(item.cantidad).isdigit() else 1
+                except InvalidId:
+                    pass
+                    
+            if cart_ids:
+                articulos_cart = Articulo.objects(id__in=cart_ids)
+                for a in articulos_cart:
+                    vend = a.vendedor
+                    carrito_lista.append({
+                        'id': str(a.id),
+                        'brand': a.marca or '',
+                        'title': a.nombre or '',
+                        'price': _precio_a_int(a.precio),
+                        'seller': (vend.nombre_usuario or vend.username or 'Vendedor') if vend else 'Vendedor',
+                        'img': a.fotos[0].url_imagen if a.fotos else '',
+                        'qty': cantidades.get(str(a.id), 1)
+                    })
+
     context = {
         'user': user,
         'compras_count': 0,
@@ -352,7 +410,10 @@ def perfil(request):
         'total': 0,
         'publicaciones': publicaciones,
         'ventas_recientes': ventas_recientes,
-        'valoraciones': valoraciones_lista
+        'compras_recientes': compras_recientes,
+        'valoraciones': valoraciones_lista,
+        'favoritos': favoritos_lista, 
+        'carrito': carrito_lista,
     }
     return render(request, 'core/perfil.html', context)
 
@@ -969,8 +1030,8 @@ def api_ratings(request):
 
     data = _body(request)
     chat = _chat_o_none(data.get('chatId'))
-    if not chat or _raw_id(chat, 'id_comprador'):
-        return _error('Solo el comprador de este chat puede valorar', 403)
+    #if not chat or _raw_id(chat, 'id_comprador'):
+     #   return _error('Solo el comprador de este chat puede valorar', 403)
 
     stars = _to_int(data.get('stars'))
     if not 1 <= stars <= 5:
