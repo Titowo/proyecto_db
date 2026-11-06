@@ -35,6 +35,9 @@
   </div>
 </div>
 
+<!-- Seller data helper -->
+{% with nombre_vendedor=p.vendedor.nombre_usuario|default:p.vendedor.username|default:'Vendedor' %}
+{% with inicial_vendedor=nombre_vendedor|slice:0:1|upper %}
 <!-- Product data -->
 <script id="product-data" type="application/json">
 {
@@ -49,7 +52,7 @@
     "price": {{ p.precio|default:0 }},
     "stock": {{ p.stock|default:0 }},
     "desc": "{{ p.descripcion|escapejs }}",
-    "seller": "{{ p.vendedor.nombre_usuario|default:p.vendedor.username|default:'Vendedor'|escapejs }}",
+    "seller": "{{ nombre_vendedor|escapejs }}",
     "imgs": [
       {% for foto in p.fotos %}
       "{{ foto.url_imagen|escapejs }}"{% if not forloop.last %},{% endif %}
@@ -57,14 +60,16 @@
     ]
   },
   "seller": {
-    "initial": "{{ p.vendedor.nombre_usuario|default:p.vendedor.username|default:'Vendedor'|slice:0:1|upper }}",
+    "initial": "{{ inicial_vendedor }}",
     "rating": "{{ p.vendedor.reputacion|default:'4.9' }}",
     "sales": {{ p.vendedor.numero_ventas|default:0 }},
     "zone": "{{ p.vendedor.ubicacion|default:'Santiago' }}",
-    "username": "{{ p.vendedor.nombre_usuario|default:p.vendedor.username|default:'Vendedor'|escapejs }}"
+    "username": "{{ nombre_vendedor|escapejs }}"
   }
 }
 </script>
+{% endwith %}
+{% endwith %}
 
 <!-- Related products -->
 <script id="related-data" type="application/json">
