@@ -8,6 +8,7 @@
 <div class="container">
   <aside class="sidebar">
     <div class="sheet-head"><b>Filtros</b><button type="button" class="link-btn" id="close-filters">✕ Cerrar</button></div>
+
     <div class="filter-group">
       <h3>Ordenar por</h3>
       <select id="sort">
@@ -20,106 +21,65 @@
     <div class="filter-group">
       <h3>Rango de Precio</h3>
       <div class="price-inputs">
-        <div class="field"><span>Mínimo</span><input type="number" id="input-min" value="0" min="0" max="250000" step="5000"></div>
+        <div class="field"><span>Mínimo</span><input type="number" id="input-min" value="0" min="0" max="{{ precio_max }}" step="5000"></div>
         <div class="sep">-</div>
-        <div class="field"><span>Máximo</span><input type="number" id="input-max" value="250000" min="0" max="250000" step="5000"></div>
+        <div class="field"><span>Máximo</span><input type="number" id="input-max" value="{{ precio_max }}" min="0" max="{{ precio_max }}" step="5000"></div>
       </div>
       <div class="range-wrap">
         <div class="track"></div>
         <div class="progress" id="range-color"></div>
-        <input type="range" id="range-min" min="0" max="250000" value="0" step="5000">
-        <input type="range" id="range-max" min="0" max="250000" value="250000" step="5000">
+        <input type="range" id="range-min" min="0" max="{{ precio_max }}" value="0" step="5000">
+        <input type="range" id="range-max" min="0" max="{{ precio_max }}" value="{{ precio_max }}" step="5000">
       </div>
     </div>
 
     <div class="filter-group" id="f-cat">
-      <h3>Categoría (Obligatorio)</h3>
-      <label><input type="checkbox" value="Zapatillas" checked> Zapatillas</label>
-      {% for cat in categorias %}
-      <label><input type="checkbox" value="{{ cat.nombre }}">{{ cat.nombre }}</label>
+      <h3>Categoría</h3>
+      {% for c in categorias %}
+      <label><input type="checkbox" value="{{ c }}" checked> {{ c }}</label>
       {% endfor %}
     </div>
 
+    {% if tallas %}
     <div class="filter-group" id="f-size">
       <h3>Talla</h3>
-      <label><input type="checkbox" value="S"> US 8 / S</label>
-      <label><input type="checkbox" value="M"> US 9 / M</label>
-      <label><input type="checkbox" value="L"> US 10 / L</label>
-      <label><input type="checkbox" value="Única"> Talla única</label>
+      {% for t in tallas %}
+      <label><input type="checkbox" value="{{ t }}"> {{ t }}</label>
+      {% endfor %}
     </div>
+    {% endif %}
 
+    {% if marcas %}
     <div class="filter-group" id="f-brand">
       <h3>Marca</h3>
-      <label><input type="checkbox" value="Nike"> Nike</label>
-      <label><input type="checkbox" value="Jordan"> Jordan</label>
-      <label><input type="checkbox" value="Stüssy"> Stüssy</label>
-      <label><input type="checkbox" value="Supreme"> Supreme</label>
+      {% for m in marcas %}
+      <label><input type="checkbox" value="{{ m }}"> {{ m }}</label>
+      {% endfor %}
     </div>
+    {% endif %}
 
     <div class="filter-group" id="f-cond">
       <h3>Estado</h3>
       <label><input type="radio" name="estado" value="" checked> Todos</label>
-      <label><input type="radio" name="estado" value="Nuevo"> Nuevo</label>
-      <label><input type="radio" name="estado" value="Usado"> Usado</label>
+      {% for e in estados %}
+      <label><input type="radio" name="estado" value="{{ e }}"> {{ e }}</label>
+      {% endfor %}
     </div>
 
     <button class="btn block" id="apply">Aplicar Filtros</button>
-    <button class="link-btn" id="clear" style="margin-top:10px;display:block;">Limpiar filtros</button>
+    <button class="link-btn" id="clear" type="button">Limpiar filtros</button>
   </aside>
 
   <section>
     <div class="toolbar">
-      <span id="count" class="muted">{{ articulos.count }} artículos</span>
+      <span id="count" class="muted"></span>
       <button type="button" class="btn small secondary filters-btn" id="open-filters">☰ Filtros</button>
     </div>
-    <main class="catalog-grid" id="grid">
-      {% for p in articulos %}
-      <a class="product-card" href="{% url 'producto' p.id %}">
-        <button class="fav-btn" data-fav="{{ p.id }}" title="Favorito">♡</button>
-        <img src="{% if p.fotos %}{{ p.fotos.0.url_imagen }}{% endif %}" alt="{{ p.nombre }}" class="product-image">
-        <div class="product-info">
-          <div class="brand">{{ p.marca }}</div>
-          <h2 class="product-title">{{ p.nombre }}</h2>
-          <div class="product-meta"><span>Talla: {{ p.talla }}</span><span>{{ p.estado_conservacion }}</span></div>
-          <div class="price">${{ p.precio }}</div>
-          {% with vendedor=p.vendedor %}
-            <div class="seller-line">Vende {{ vendedor.nombre_usuario|default:vendedor.username|default:"Vendedor" }}</div>
-          {% endwith %}
-        </div>
-      </a>
-      {% empty %}
-      <div class="empty">No encontramos artículos con esos filtros.</div>
-      {% endfor %}
-    </main>
+    <main class="catalog-grid" id="grid"></main>
   </section>
 </div>
 
-<!-- Productos para filtrado en JavaScript -->
-<script id="products-data" type="application/json">
-{
-  "products": [
-    {% for p in articulos %}
-    {
-      "id": "{{ p.id }}",
-      "brand": "{{ p.marca|escapejs }}",
-      "title": "{{ p.nombre|escapejs }}",
-      "cat": "{{ p.categoria.nombre|escapejs }}",
-      "size": "{{ p.talla|escapejs }}",
-      "sizeGroup": "{% if p.talla == 'US 8 / S' %}S{% elif p.talla == 'US 9 / M' %}M{% elif p.talla == 'US 10 / L' %}L{% else %}Única{% endif %}",
-      "cond": "{{ p.estado_conservacion|escapejs }}",
-      "price": {{ p.precio|default:0 }},
-      "stock": {{ p.stock|default:0 }},
-      "seller": "{{ p.vendedor.nombre_usuario|default:p.vendedor.username|default:'Vendedor'|escapejs }}",
-      "imgs": [
-        {% for foto in p.fotos %}
-        "{{ foto.url_imagen|escapejs }}"{% if not forloop.last %},{% endif %}
-        {% endfor %}
-      ]
-    }{% if not forloop.last %},{% endif %}
-    {% endfor %}
-  ]
-}
-</script>
+{{ productos|json_script:"products-data" }}
 {% endblock %}
 
 {% block scripts %}
@@ -127,10 +87,30 @@
 <script>
   const $ = (id) => document.getElementById(id);
   const q = (new URLSearchParams(location.search).get('q') || '').toLowerCase();
-  if (q) document.querySelector('.search-bar input').value = q;
+  const si = document.querySelector('.search-bar input');
+  if (q && si) si.value = q;
 
+  const PRODUCTS = JSON.parse($('products-data').textContent);
+  const MAX = +$('range-max').max;
   const minR = $('range-min'), maxR = $('range-max'), minI = $('input-min'), maxI = $('input-max'), bar = $('range-color');
-  const MAX = 250000;
+
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  function card(p) {
+    const fav = (typeof Store !== 'undefined' && Store.isFav(p.id));
+    return `
+    <a class="product-card" href="/producto/${p.id}">
+      <button class="fav-btn ${fav ? 'on' : ''}" data-fav="${p.id}" title="Favorito">${fav ? '♥' : '♡'}</button>
+      <img src="${esc(p.imgs[0] || '')}" alt="${esc(p.title)}" class="product-image">
+      <div class="product-info">
+        <div class="brand">${esc(p.brand)}</div>
+        <h2 class="product-title">${esc(p.title)}</h2>
+        <div class="product-meta"><span>Talla: ${esc(p.size)}</span><span>${esc(p.cond)}</span></div>
+        <div class="price">${fmt(p.price)}</div>
+        <div class="seller-line">Vende ${esc(p.seller)}</div>
+      </div>
+    </a>`;
+  }
 
   function syncBar() {
     bar.style.left = (minR.value / MAX * 100) + '%';
@@ -141,63 +121,42 @@
     minI.value = minR.value; maxI.value = maxR.value; syncBar();
   }
   function fromInput() {
-    minR.value = Math.min(+minI.value || 0, +maxI.value || MAX);
-    maxR.value = Math.max(+maxI.value || 0, +minI.value || 0);
-    syncBar();
+    const lo = Math.min(+minI.value || 0, +maxI.value || MAX);
+    const hi = Math.max(+maxI.value || 0, +minI.value || 0);
+    minR.value = lo; maxR.value = hi; minI.value = lo; maxI.value = hi; syncBar();
   }
   minR.addEventListener('input', () => fromRange('min'));
   maxR.addEventListener('input', () => fromRange('max'));
   minI.addEventListener('change', fromInput);
   maxI.addEventListener('change', fromInput);
 
-  function checked(sel) { return [...document.querySelectorAll(sel + ' input:checked')].map(i => i.value); }
-
-  // Cargar productos desde el script
-  let PRODUCTS = [];
-  let SELLERS = {};
-  try {
-    const data = JSON.parse(document.getElementById('products-data').textContent);
-    PRODUCTS = data.products;
-    // Construir SELLERS únicos
-    PRODUCTS.forEach(p => {
-      if (!SELLERS[p.seller]) {
-        SELLERS[p.seller] = {
-          initial: p.seller.replace('@', '')[0].toUpperCase(),
-          rating: '4.9',
-          sales: 0,
-          zone: 'Santiago'
-        };
-      }
-    });
-  } catch(e) { console.error('Error parsing products:', e); }
+  const checked = (sel) => [...document.querySelectorAll(sel + ' input:checked')].map(i => i.value);
 
   function render() {
-    const cats = checked('#f-cat');
-    const sizes = checked('#f-size');
-    const brands = checked('#f-brand');
+    const cats = checked('#f-cat'), sizes = checked('#f-size'), brands = checked('#f-brand');
     const cond = document.querySelector('input[name=estado]:checked').value;
     const lo = +minR.value, hi = +maxR.value;
 
-    if (cats.length === 0) {
+    if (!cats.length) {
       $('count').textContent = '0 artículos';
-      $('grid').innerHTML = '<div class="empty" style="color: var(--danger); border-color: var(--danger);">⚠ Selecciona al menos una Categoría (Filtro Obligatorio) para ver los resultados.</div>';
-      return; 
+      $('grid').innerHTML = '<div class="empty" style="color:var(--danger);border-color:var(--danger);">⚠ Selecciona al menos una categoría.</div>';
+      return;
     }
 
-    let list = PRODUCTS.filter(p =>
+    const list = PRODUCTS.filter(p =>
       p.price >= lo && p.price <= hi &&
       cats.includes(p.cat) &&
-      (!sizes.length || sizes.includes(p.sizeGroup)) &&
+      (!sizes.length || sizes.includes(p.size)) &&
       (!brands.length || brands.includes(p.brand)) &&
       (!cond || p.cond === cond) &&
       (!q || (p.title + ' ' + p.brand + ' ' + p.cat).toLowerCase().includes(q))
     );
-    
+
     const s = $('sort').value;
     if (s) list.sort((a, b) => s === 'asc' ? a.price - b.price : b.price - a.price);
-    
+
     $('count').textContent = list.length + (list.length === 1 ? ' artículo' : ' artículos');
-    $('grid').innerHTML = list.length ? list.map(productCard).join('') : '<div class="empty">No encontramos artículos con esos filtros.</div>';
+    $('grid').innerHTML = list.length ? list.map(card).join('') : '<div class="empty">No encontramos artículos con esos filtros.</div>';
   }
 
   const sheet = document.querySelector('.sidebar');
@@ -208,11 +167,16 @@
   $('apply').addEventListener('click', () => { render(); closeSheet(); });
   window.addEventListener('resize', () => { if (innerWidth > 900) closeSheet(); });
 
+  // Filtra al instante, sin esperar al botón
+  document.querySelectorAll('.sidebar input[type=checkbox], .sidebar input[type=radio]').forEach(i => i.addEventListener('change', render));
+  [minR, maxR].forEach(r => r.addEventListener('change', render));
+  [minI, maxI].forEach(r => r.addEventListener('change', render));
   $('sort').addEventListener('change', render);
+
   $('clear').addEventListener('click', () => {
-    document.querySelectorAll('.sidebar input[type=checkbox]').forEach(c => c.checked = false);
+    document.querySelectorAll('#f-size input, #f-brand input').forEach(c => c.checked = false);
+    document.querySelectorAll('#f-cat input').forEach(c => c.checked = true);
     document.querySelector('input[name=estado][value=""]').checked = true;
-    document.querySelectorAll('#f-cat input[type=checkbox]').forEach(c => c.checked = true);
     minR.value = 0; maxR.value = MAX; fromRange(); render();
   });
 

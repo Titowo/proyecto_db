@@ -32,138 +32,68 @@
   </section>
 </div>
 
-<!-- Productos disponibles - inyectados por Django -->
-{% if usuario_actual %}
-<script id="productos-carrito" type="application/json">
-[
-  {% for art in articulos_disponibles %}
-  {
-    "id": "{{ art.id }}",
-    "brand": "{{ art.marca|escapejs }}",
-    "title": "{{ art.nombre|escapejs }}",
-    "cat": "{{ art.categoria.nombre|escapejs }}",
-    "size": "{{ art.talla|escapejs }}",
-    "cond": "{{ art.estado_conservacion|escapejs }}",
-    "price": {{ art.precio|default:0 }},
-    "stock": {{ art.stock|default:0 }},
-    "seller": "{{ art.vendedor.nombre_usuario|default:art.vendedor.username|default:'Vendedor'|escapejs }}",
-    "img": "{% if art.fotos %}{{ art.fotos.0.url_imagen|escapejs }}{% endif %}"
-  }{% if not forloop.last %},{% endif %}
-  {% endfor %}
-]
-</script>
-{% endif %}
-
-<!-- Favoritos del usuario -->
-<script id="favorites-data" type="application/json">
-{
-  "favs": {{ favoritos_ids|safe|default:'[]' }}
-}
-</script>
+{{ datos|json_script:"carrito-data" }}
 {% endblock %}
 
 {% block scripts %}
 <script src="{% static 'core/js/data.js' %}"></script>
 <script>
   const $ = (id) => document.getElementById(id);
-
-  // Estado del carrito y favoritos
-  const favsData = JSON.parse(localStorage.getItem('c2c_favs') || '[]');
-  const favsIds = JSON.parse(document.getElementById('favorites-data')?.textContent || '{"favs":[]}').favs || [];
-
-  // Función para obtener producto desde MongoDB inyectado
-  function getProduct(id) {
-    const scriptContent = document.getElementById('productos-carrito')?.textContent;
-    if (scriptContent) {
-      try {
-        const allProducts = JSON.parse(scriptContent);
-        return allProducts.find(p => String(p.id) === String(id));
-      } catch(e) {}
-    }
-    // Fallback: buscar en favoritos
-    if (favsIds.includes(Number(id))) {
-      for (const fid of favsIds) {
-        const script = document.getElementById('fav-' + fid);
-        if (script) {
-          try { return JSON.parse(script.textContent); } catch(e) {}
-        }
-      }
-    }
-    return null;
-  }
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const STATE = JSON.parse($('carrito-data').textContent);   // {logged, cart:[...], favs:[...]}
 
   function renderCarts() {
-    const cart = JSON.parse(localStorage.getItem('c2c_cart') || '{}');
+    if (!STATE.logged) {
+      $('carts').innerHTML = `<div class="empty">Inicia sesión para ver tu carrito. <a href="/login/" style="text-decoration:underline;font-weight:bold">Iniciar sesión</a></div>`;
+      $('n-carts').textContent = 0; $('s-carts').textContent = 0; $('s-items').textContent = 0; $('s-total').textContent = '$0';
+      return;
+    }
     const groups = {};
-    Object.entries(cart).forEach(([id, qty]) => {
-      const p = getProduct(id);
-      if (!p || qty < 1) return;
-      (groups[p.seller] = groups[p.seller] || []).push({ p, qty: Number(qty) });
-    });
-    
+    STATE.cart.forEach(p => (groups[p.seller] = groups[p.seller] || []).push(p));
     const sellers = Object.keys(groups);
     let items = 0, total = 0;
 
-    if (sellers.length === 0) {
-      $('carts').innerHTML = `<div class="empty" style="border:1px dashed #ccc;background:#fff;padding:50px;text-align:center">
-        Tu carrito está vacío. <a href="catalogo.html" style="text-decoration:underline;font-weight:bold">Ir al catálogo</a>
-      </div>`;
-      $('s-carts').textContent = 0;
-      $('s-items').textContent = 0;
-      $('s-total').textContent = '$0';
+    if (!sellers.length) {
+      $('carts').innerHTML = `<div class="empty">Tu carrito está vacío. <a href="/catalogo" style="text-decoration:underline;font-weight:bold">Ir al catálogo</a></div>`;
+      $('n-carts').textContent = 0; $('s-carts').textContent = 0; $('s-items').textContent = 0; $('s-total').textContent = '$0';
       return;
     }
 
-    // Construir SELLERS para los vendedores
-    const sellerInfo = {};
-    sellers.forEach(sel => {
-      if (!sellerInfo[sel]) {
-        sellerInfo[sel] = {
-          initial: sel.replace('@', '')[0].toUpperCase(),
-          rating: '4.9',
-          sales: 0,
-          zone: 'Santiago'
-        };
-      }
-    });
-
     $('carts').innerHTML = sellers.map(sel => {
-      const s = sellerInfo[sel];
       const rows = groups[sel];
-      const sub = rows.reduce((a, r) => a + r.p.price * r.qty, 0);
-      const cnt = rows.reduce((a, r) => a + r.qty, 0);
+      const sub = rows.reduce((a, p) => a + p.price * p.qty, 0);
+      const cnt = rows.reduce((a, p) => a + p.qty, 0);
       items += cnt; total += sub;
       return `
       <div class="seller-cart">
         <div class="head">
-          <div class="avatar">${s.initial}</div>
-          <div class="grow"><h3>Carrito de ${sel}</h3><p>★ ${s.rating} · ${s.zone} · ${cnt} artículo(s)</p></div>
-          <button class="btn small accent" data-clear="${sel}">Vaciar</button>
+          <div class="avatar">${esc(sel.replace('@', '')[0] || 'V').toUpperCase()}</div>
+          <div class="grow"><h3>Carrito de ${esc(sel)}</h3><p>${cnt} artículo(s)</p></div>
+          <button class="btn small accent" data-clear="${esc(sel)}">Vaciar</button>
         </div>
-        ${rows.map(({ p, qty }) => `
+        ${rows.map(p => `
         <div class="cart-item">
-          <a href="producto.html?id=${p.id}"><img src="${p.img}" alt="${p.title}" style="width: 90px; height: 90px; object-fit:cover;border-radius:6px"></a>
+          <a href="/producto/${p.id}"><img src="${esc(p.img)}" alt="${esc(p.title)}"></a>
           <div>
-            <div class="brand">${p.brand}</div>
-            <h4><a href="producto.html?id=${p.id}">${p.title}</a></h4>
-            <div class="sub">Talla ${p.size} · ${p.cond} · Stock: ${p.stock}</div>
+            <div class="brand">${esc(p.brand)}</div>
+            <h4><a href="/producto/${p.id}">${esc(p.title)}</a></h4>
+            <div class="sub">Talla ${esc(p.size)} · ${esc(p.cond)} · Stock: ${p.stock}</div>
             <div class="actions">
-              <a href="producto.html?id=${p.id}" class="link-btn" style="text-decoration:underline;">Ir al producto</a>
-              <a href="#" class="link-btn" data-remove="${p.id}" style="text-decoration:underline;">Eliminar</a>
+              <a href="/producto/${p.id}" class="link-btn">Ir al producto</a>
+              <button class="link-btn" data-remove="${p.id}">Eliminar</button>
+              <button class="link-btn" data-tofav="${p.id}">Mover a favoritos</button>
             </div>
           </div>
           <div class="right">
-            <div class="price">${fmt(p.price * qty)}</div>
-            <div class="stepper" style="justify-content:flex-end; margin-top:8px;">
-              <button data-dec="${p.id}">−</button>
-              <span>${qty}</span>
-              <button data-inc="${p.id}">+</button>
+            <div class="price">${fmt(p.price * p.qty)}</div>
+            <div class="stepper" style="justify-content:flex-end;margin-top:8px;">
+              <button data-dec="${p.id}">−</button><span>${p.qty}</span><button data-inc="${p.id}">+</button>
             </div>
           </div>
         </div>`).join('')}
         <div class="foot">
-          <div class="total">Subtotal ${sel}<b>${fmt(sub)}</b></div>
-          <a class="btn" href="chat.html?id=${rows[0].p.id}">Coordinar compra con ${sel} →</a>
+          <div class="total">Subtotal ${esc(sel)}<b>${fmt(sub)}</b></div>
+          <a class="btn" href="/chat/nuevo/${rows[0].id}/">Coordinar compra con ${esc(sel)} →</a>
         </div>
       </div>`;
     }).join('');
@@ -172,75 +102,60 @@
     $('s-carts').textContent = sellers.length;
     $('s-items').textContent = items;
     $('s-total').textContent = fmt(total);
-    
-    // Actualizar badges del menú
-    const m = document.getElementById('badge-menu');
-    if (m) m.textContent = sellers.length + favsData.length;
   }
 
   function renderFavs() {
-    const favs = window.currentUser ? 
-      favsData.map(getProduct).filter(Boolean) : 
-      [];
-    
-    $('n-favs').textContent = favs.length;
-    $('favs').innerHTML = favs.length
-      ? favs.map(p => {
-          const imgs = p.imgs ? p.imgs : [p.img];
-          return `
-        <a class="product-card" href="producto.html?id=${p.id}">
-          <button class="fav-btn on" data-fav="${p.id}" title="Favorito">♥</button>
-          <img src="${imgs[0]}" alt="${p.title}" class="product-image">
-          <div class="product-info">
-            <div class="brand">${p.brand}</div>
-            <h2 class="product-title">${p.title}</h2>
-            <div class="product-meta"><span>Talla: ${p.size}</span><span>${p.cond}</span></div>
-            <div class="price">${fmt(p.price)}</div>
-            <div class="seller-line">Vende ${p.seller}</div>
-          </div>
-        </a>`;
-        }).join('')
+    $('n-favs').textContent = STATE.favs.length;
+    $('favs').innerHTML = STATE.favs.length ? STATE.favs.map(p => `
+      <a class="product-card" href="/producto/${p.id}">
+        <button class="fav-btn on" data-fav="${p.id}" title="Favorito">♥</button>
+        <img src="${esc(p.img)}" alt="${esc(p.title)}" class="product-image">
+        <div class="product-info">
+          <div class="brand">${esc(p.brand)}</div>
+          <h2 class="product-title">${esc(p.title)}</h2>
+          <div class="product-meta"><span>Talla: ${esc(p.size)}</span><span>${esc(p.cond)}</span></div>
+          <div class="price">${fmt(p.price)}</div>
+          <div class="seller-line">Vende ${esc(p.seller)}</div>
+        </div>
+      </a>`).join('')
       : `<div class="empty">Aún no tienes favoritos. Toca el ♡ en cualquier artículo.</div>`;
   }
 
-  document.addEventListener('click', (e) => {
-    const t = e.target;
-    
-    if (t.dataset.inc) {
-      const cart = JSON.parse(localStorage.getItem('c2c_cart') || '{}');
-      cart[t.dataset.inc] = Math.min(99, (cart[t.dataset.inc] || 0) + 1);
-      localStorage.setItem('c2c_cart', JSON.stringify(cart));
-      renderCarts();
+  // Si se quita un favorito desde esta página, se actualiza la lista
+  document.addEventListener('store:favs', (e) => {
+    if (!e.detail.isFav) STATE.favs = STATE.favs.filter(f => f.id !== e.detail.id);
+    renderFavs();
+  });
+
+  document.addEventListener('click', async (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    const find = (id) => STATE.cart.find(p => p.id === id);
+
+    if (b.dataset.inc || b.dataset.dec) {
+      const id = b.dataset.inc || b.dataset.dec, p = find(id);
+      if (!p) return;
+      const nueva = b.dataset.inc ? p.qty + 1 : p.qty - 1;
+      if (nueva < 1) return;
+      if (nueva > p.stock) return toast('No hay más stock disponible');
+      const d = await Store.setQty(id, nueva);
+      if (d.success) { p.qty = d.qty; renderCarts(); }
     }
-    else if (t.dataset.dec) {
-      const cart = JSON.parse(localStorage.getItem('c2c_cart') || '{}');
-      cart[t.dataset.dec] = Math.max(1, (cart[t.dataset.dec] || 1) - 1);
-      localStorage.setItem('c2c_cart', JSON.stringify(cart));
-      renderCarts();
-    }
-    else if (t.dataset.remove) {
-      const cart = JSON.parse(localStorage.getItem('c2c_cart') || '{}');
-      delete cart[t.dataset.remove];
-      localStorage.setItem('c2c_cart', JSON.stringify(cart));
-      // Mover a favoritos
-      if (!favsData.includes(Number(t.dataset.remove))) {
-        favsData.push(Number(t.dataset.remove));
-        localStorage.setItem('c2c_favs', JSON.stringify(favsData));
+    else if (b.dataset.remove || b.dataset.tofav) {
+      const id = b.dataset.remove || b.dataset.tofav, toFav = !!b.dataset.tofav;
+      const d = await Store.removeFromCart(id, toFav);
+      if (d.success) {
+        const p = find(id);
+        STATE.cart = STATE.cart.filter(x => x.id !== id);
+        if (toFav && p && !STATE.favs.some(f => f.id === id)) STATE.favs.push(p);
+        renderCarts(); renderFavs();
+        toast(toFav ? 'Movido a favoritos' : 'Artículo eliminado');
       }
-      renderCarts();
-      renderFavs();
-      toast('Movido a favoritos');
     }
-    else if (t.dataset.clear) {
-      const cart = JSON.parse(localStorage.getItem('c2c_cart') || '{}');
-      Object.keys(cart).forEach(id => {
-        const p = getProduct(id);
-        if (p && p.seller === t.dataset.clear) {
-          delete cart[id];
-        }
-      });
-      localStorage.setItem('c2c_cart', JSON.stringify(cart));
-      renderCarts();
+    else if (b.dataset.clear) {
+      const ids = STATE.cart.filter(p => p.seller === b.dataset.clear).map(p => p.id);
+      const d = await Store.clearCart(ids);
+      if (d.success) { STATE.cart = STATE.cart.filter(p => !ids.includes(p.id)); renderCarts(); }
     }
   });
 
@@ -249,16 +164,13 @@
     $('view-favoritos').style.display = name === 'favoritos' ? '' : 'none';
     $('tab-carrito').classList.toggle('active', name === 'carrito');
     $('tab-favoritos').classList.toggle('active', name === 'favoritos');
-    history.replaceState(null, '', name === 'carrito' ? '' : '#favoritos');
+    history.replaceState(null, '', name === 'carrito' ? location.pathname : '#favoritos');
   }
-  $('tab-carrito').onclick = () => { showTab('carrito'); };
-  $('tab-favoritos').onclick = () => { showTab('favoritos'); };
+  $('tab-carrito').onclick = () => showTab('carrito');
+  $('tab-favoritos').onclick = () => showTab('favoritos');
 
-  // Inicializar
-  renderCarts();
-  renderFavs();
-  const applyHash = () => showTab(location.hash === '#favoritos' ? 'favoritos' : 'carrito');
-  window.addEventListener('hashchange', applyHash);
-  applyHash();
+  renderCarts(); renderFavs();
+  window.addEventListener('hashchange', () => showTab(location.hash === '#favoritos' ? 'favoritos' : 'carrito'));
+  showTab(location.hash === '#favoritos' ? 'favoritos' : 'carrito');
 </script>
 {% endblock %}

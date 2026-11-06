@@ -1,4 +1,4 @@
-from mongoengine import Document, EmbeddedDocument, fields
+from mongoengine import Document, EmbeddedDocument, fields, ReferenceField, IntField
 import datetime
 
 # ==============================================================================
@@ -78,6 +78,12 @@ class Usuario(Document):
     telefono = fields.StringField(default='')
     estado_cuenta = fields.StringField(default='Activo')
     fecha_registro = fields.StringField()
+    rol = fields.StringField(default='usuario')
+    # Campos adicionales para perfil
+    ubicacion = fields.StringField(default='')
+    contacto = fields.StringField(default='Solo chat de la plataforma')
+    punto_entrega = fields.StringField(default='')
+    biografia = fields.StringField(default='')
     
     carrito = fields.EmbeddedDocumentListField(ItemCarrito)
     favoritos = fields.EmbeddedDocumentListField(ItemFavorito)

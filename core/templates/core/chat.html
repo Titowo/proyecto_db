@@ -6,65 +6,65 @@
 
 {% block content %}
 <div class="chat-container">
-  <!-- Lista de chats -->
   <aside class="chat-sidebar">
     <div class="sidebar-header">Mensajes</div>
     <div id="threads">
-      {% if chats_usuario %}
-        {% for c in chats_usuario %}
-        <a href="{% url 'chat_detalle' c.id %}" class="chat-item {% if chat_actual and c.id == chat_actual.id %}active{% endif %}">
-          <img src="{% if c.articulo_resumen.url_portada %}{{ c.articulo_resumen.url_portada }}{% endif %}" alt="{{ c.articulo_resumen.nombre }}">
-          <div>
-            <h4>{{ c.vendedor.nombre_usuario }}</h4>
-            <p>{{ c.articulo_resumen.nombre }} - ${{ c.articulo_resumen.precio_publicado|floatformat:0 }}</p>
-            <span class="st">{{ c.estado }}</span>
-          </div>
-        </a>
-        {% endfor %}
-      {% else %}
-        <div style="padding: 20px; text-align: center; color: #666; font-size: 13px;">No tienes conversaciones activas.</div>
-      {% endif %}
+      {% for c in chats %}
+      <a href="{% url 'chat_detalle' c.id %}" class="chat-item {% if c.active %}active{% endif %}">
+        {% if c.article.img %}<img src="{{ c.article.img }}" alt="">{% endif %}
+        <div>
+          <h4>{{ c.other }}</h4>
+          <p>{{ c.article.title }} - {{ c.article.price_fmt }}</p>
+          <span class="st">{% if c.role == 'seller' %}Vendes{% else %}Compras{% endif %}</span>
+        </div>
+      </a>
+      {% empty %}
+      <div style="padding:20px;text-align:center;color:#666;font-size:13px;">No tienes conversaciones activas.</div>
+      {% endfor %}
     </div>
   </aside>
 
-  <!-- Chat -->
   <main class="chat-main">
-    {% if chat_actual %}
-    <!-- Cabecera del Chat / Resumen del Artículo -->
+    {% if chat %}
     <div class="article-context">
       <div class="article-info">
-        <a href="{% url 'producto' chat_actual.id_articulo.id %}">
-          <img id="art-img" src="{% if chat_actual.articulo_resumen.url_portada %}{{ chat_actual.articulo_resumen.url_portada }}{% endif %}" alt="Artículo">
-        </a>
+        {% if chat.article.id %}
+          <a href="{% url 'producto' chat.article.id %}">
+            {% if chat.article.img %}<img src="{{ chat.article.img }}" alt="Artículo">{% endif %}
+          </a>
+        {% endif %}
         <div class="article-details">
-          <h3 id="art-title">{{ chat_actual.articulo_resumen.nombre }}</h3>
-          <p id="art-meta">Precio: ${{ chat_actual.articulo_resumen.precio_publicado|floatformat:0 }}</p>
-          <p id="art-with">Chat con {{ chat_actual.vendedor.nombre_usuario }}</p>
+          <h3>{{ chat.article.brand }} {{ chat.article.title }}</h3>
+          <p>Precio: {{ chat.article.price_fmt }} | Stock: {{ chat.article.stock }}</p>
+          <p>Chat con {{ chat.other }}</p>
         </div>
       </div>
-      <div class="transaction-panel" id="panel">
-        <!-- Will be populated by JS -->
+
+      <div class="transaction-panel">
+        {% if chat.role == 'seller' %}
+          <label>Cant. acordada:</label>
+          <input type="number" id="p-qty" value="1" min="1" step="1">
+          <label>Precio c/u:</label>
+          <input type="number" id="p-price" value="{{ chat.article.price }}" step="1000" style="width:100px">
+          <button class="btn small accent" id="p-sell" type="button">Marcar como Vendido</button>
+        {% else %}
+          <label>Mi oferta:</label>
+          <input type="number" id="p-offer" value="{{ chat.article.price }}" step="1000" style="width:100px">
+          <button class="btn small" id="p-send-offer" type="button">Enviar oferta</button>
+          <button class="btn small accent" id="p-rate" type="button" {% if not chat.por_valorar %}style="display:none"{% endif %}>★ Valorar vendedor</button>
+        {% endif %}
       </div>
     </div>
 
-    <div class="stepper-status" id="status"></div>
-
-    <div class="chat-messages" id="msgs">
-      {% for m in chat_actual.mensajes %}
-      <div class="message {% if m.id_usuario == usuario_actual.id %}msg-sent{% else %}msg-received{% endif %}">
-        {{ m.contenido }}<span class="time">{{ m.fecha_envio|date:"H:i" }}</span>
-      </div>
-      {% endfor %}
-    </div>
+    <div class="chat-messages" id="msgs"></div>
 
     <div class="quick" id="quick"></div>
-    <form class="chat-input" id="form" method="POST">
-      {% csrf_token %}
-      <input type="text" id="text" name="contenido_mensaje" placeholder="Escribe un mensaje..." autocomplete="off" required>
+    <form class="chat-input" id="form">
+      <input type="text" id="text" placeholder="Escribe un mensaje..." autocomplete="off" required>
       <button type="submit" class="send">Enviar</button>
     </form>
     {% else %}
-    <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666;">
+    <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#666;">
       Selecciona una conversación para comenzar a negociar.
     </div>
     {% endif %}
@@ -76,22 +76,19 @@
   <div class="modal">
     <h3>Confirmar venta</h3>
     <div class="row"><span>Artículo</span><b id="m-title"></b></div>
-    <div class="row"><span>Comprador</span><b id="m-buyer"></b></div>
     <div class="row"><span>Cantidad</span><b id="m-qty"></b></div>
     <div class="row"><span>Precio unitario acordado</span><b id="m-unit"></b></div>
     <div class="row total"><span>Total</span><span id="m-total"></span></div>
     <p class="muted" style="font-size:12px;margin-top:10px">Al confirmar, se registra la venta y se descuenta la cantidad del stock. Esta acción no se puede deshacer.</p>
     <div class="btns">
-      <button class="btn secondary" id="m-cancel">Cancelar</button>
-      <button class="btn accent" id="m-ok">Confirmar venta</button>
+      <button class="btn secondary" id="m-cancel" type="button">Cancelar</button>
+      <button class="btn accent" id="m-ok" type="button">Confirmar venta</button>
     </div>
   </div>
 </div>
-
-<!-- Modal Calificar Vendedor -->
 <div class="modal-bg" id="modal-rate">
   <div class="modal">
-    <h3 style="text-align:center;">Calificar a <span id="rate-seller"></span></h3>
+    <h3 style="text-align:center;">Calificar a {{ chat.other }}</h3>
     <div class="star-rating">
       <input type="radio" id="s5" name="stars" value="5"><label for="s5">★</label>
       <input type="radio" id="s4" name="stars" value="4"><label for="s4">★</label>
@@ -99,320 +96,118 @@
       <input type="radio" id="s2" name="stars" value="2"><label for="s2">★</label>
       <input type="radio" id="s1" name="stars" value="1"><label for="s1">★</label>
     </div>
-    <textarea id="rate-comment" class="modal-textarea" placeholder="Deja un comentario sobre tu experiencia (opcional)..."></textarea>
+    <textarea id="rate-comment" class="modal-textarea" maxlength="500" placeholder="Deja un comentario sobre tu experiencia (opcional)..."></textarea>
     <div class="btns">
-      <button class="btn secondary" id="rate-cancel">Cancelar</button>
-      <button class="btn accent" id="rate-ok">Enviar Valoración</button>
+      <button class="btn secondary" id="rate-cancel" type="button">Cancelar</button>
+      <button class="btn accent" id="rate-ok" type="button">Enviar valoración</button>
     </div>
   </div>
 </div>
-
-<!-- Datos del chat -->
-<script id="chat-data" type="application/json">
-{
-  "chat": {
-    "id": "{{ chat_actual.id }}",
-    "estado": "{{ chat_actual.estado|default:'Negociando'|escapejs }}",
-    "precio_acordado": "{{ chat_actual.precio_acordado|default:''|escapejs }}",
-    "buyer": "{{ chat_actual.comprador.nombre_usuario|default:chat_actual.comprador.username|default:'Comprador'|escapejs }}",
-    "stock": {{ chat_actual.stock_disponible|default:1|safe }},
-    "product": {
-      "id": "{{ chat_actual.articulo.id }}",
-      "brand": "{{ chat_actual.articulo.marca|escapejs }}",
-      "title": "{{ chat_actual.articulo.nombre|escapejs }}",
-      "price": {{ chat_actual.articulo.precio|default:0 }},
-      "img": "{% if chat_actual.articulo.fotos %}{{ chat_actual.articulo.fotos.0.url_imagen|escapejs }}{% endif %}"
-    },
-    "vendedor": {
-      "nombre_usuario": "{{ chat_actual.vendedor.nombre_usuario|escapejs }}"
-    },
-    "mensajes": [
-      {% for m in chat_actual.mensajes %}
-      {
-        "from": "{% if m.id_usuario == usuario_actual.id %}buyer{% else %}seller{% endif %}",
-        "time": "{{ m.fecha_envio|date:'H:i' }}",
-        "text": "{{ m.contenido|escapejs }}",
-        "offer": {% if m.oferta %}{{ m.oferta|default:'null' }}{% else %}null{% endif %},
-        "state": {% if m.estado_oferta %}"{{ m.estado_oferta|escapejs }}"{% else %}null{% endif %}
-      }{% if not forloop.last %},{% endif %}
-      {% endfor %}
-    ]
-  }
-}
-</script>
+{{ chat|json_script:"chat-data" }}
 {% endblock %}
 
 {% block scripts %}
 <script src="{% static 'core/js/data.js' %}"></script>
 <script>
-  // Cargar datos del chat
-  let T = {};
-  try {
-    const chatData = JSON.parse(document.getElementById('chat-data').textContent);
-    T[chatData.chat.id] = chatData.chat;
-  } catch(e) {
-    console.error('Error parsing chat data:', e);
-  }
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const C = JSON.parse($('chat-data').textContent);
 
-  const startId = Object.keys(T)[0] || '{{ chat_actual.id|default:'' }}';
-  let cur = startId ? Number(startId) : 1;
-  let role = '{{ chat_actual.comprador.id|default:'' }}' === '{{ usuario_actual.id|default:'' }}' ? 'buyer' : 'seller';
-  let qtyAgreed = 1;
+  if (C) {
+    let msgs = C.mensajes;
 
-  const pr = () => T[cur] ? T[cur].product : getProduct(T[cur]?.productId);
-  const th = () => T[cur];
-  const counterpart = () => role === 'seller' ? th()?.buyer : th()?.product?.seller || 'Vendedor';
-  const now = () => new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+    function renderMsgs() {
+      const box = $('msgs');
+      const bottom = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+      box.innerHTML = msgs.map(m =>
+        `<div class="message ${m.mine ? 'msg-sent' : 'msg-received'}">${esc(m.text)}<span class="time">${esc(m.time)}</span></div>`
+      ).join('');
+      if (bottom || !box.dataset.init) { box.scrollTop = box.scrollHeight; box.dataset.init = 1; }
+    }
 
-  function getProduct(id) {
-    const scriptContent = document.getElementById('productos-chat')?.textContent;
-    if (scriptContent) {
+    async function send(text) {
+      text = (text || '').trim();
+      if (!text) return;
+      const d = await Store._post(`/api/chat/${C.id}/enviar`, { text });
+      if (d.success) { msgs.push(d.message); renderMsgs(); }
+    }
+
+    // Actualiza cada 4 s para ver lo que escribe la otra persona
+        async function poll() {
       try {
-        const allProducts = JSON.parse(scriptContent);
-        return allProducts.find(p => String(p.id) === String(id));
-      } catch(e) {}
+        const r = await fetch(`/api/chat/${C.id}/mensajes`, { credentials: 'same-origin' });
+        const d = await r.json();
+        if (!d.success) return;
+        if (d.mensajes.length !== msgs.length) { msgs = d.mensajes; renderMsgs(); }
+        const b = $('p-rate');
+        if (b) b.style.display = d.por_valorar ? '' : 'none';
+      } catch (e) {}
     }
-    return null;
-  }
 
-  function renderThreads() {
-    $('threads').innerHTML = Object.keys(T).map(id => {
-      const p = T[id]?.product || getProduct(id), t = T[id];
-      if (!p) return '';
-      const who = role === 'seller' ? t?.buyer : p.seller;
-      const label = { negociando: 'Negociando', acordado: 'Acuerdo cerrado', vendido: 'Vendido' }[t?.estado || 'negociando'];
-      return `<div class="chat-item ${Number(id) === cur ? 'active' : ''}" data-t="${id}">
-        <img src="${p.img}" alt="${p.title}">
-        <div><h4>${who}</h4><p>${p.brand} ${p.title}</p><span class="st">${label}</span></div>
-      </div>`;
-    }).join('');
-  }
+    // Mensajes rápidos
+    const quick = C.role === 'seller'
+      ? ['¿Te acomoda entregar en metro?', 'Te dejo el último precio', 'Sigue disponible']
+      : ['¿Sigue disponible?', '¿Dónde haces la entrega?', '¿Tienes más fotos?'];
+    $('quick').innerHTML = quick.map(s => `<button type="button" data-q="${esc(s)}">${esc(s)}</button>`).join('');
+    $('quick').addEventListener('click', (e) => { if (e.target.dataset.q) send(e.target.dataset.q); });
 
-  function renderHead() {
-    const p = pr(), t = th();
-    if (!p || !t) return;
-    
-    $('art-img').src = p.img;
-    $('art-link').href = `producto.html?id=${p.id}`;
-    $('art-title').textContent = p.brand + ' ' + p.title;
-    $('art-meta').textContent = `Precio: ${fmt(p.price)} | Stock actual: ${t.stock} | Talla: ${p.size || '—'}`;
-    $('art-with').textContent = 'Chat con ' + counterpart();
-    $('r-seller').classList.toggle('on', role === 'seller');
-    $('r-buyer').classList.toggle('on', role === 'buyer');
-  }
+    $('form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const i = $('text'); send(i.value); i.value = '';
+    });
 
-  function renderStatus() {
-    const t = th();
-    const order = ['negociando', 'acordado', 'vendido'];
-    const labels = ['1 · Negociando', '2 · Precio acordado', '3 · Venta confirmada'];
-    const i = order.indexOf(t?.estado || 'negociando');
-    $('status').innerHTML = labels.map((l, k) => 
-      `<span class="step ${k <= i ? 'done' : ''}">${l}</span>${k < 2 ? '<span class="line"></span>' : ''}`
-    ).join('');
-  }
+    // Comprador: enviar oferta (se guarda como mensaje)
+    const btnOffer = $('p-send-offer');
+    if (btnOffer) btnOffer.onclick = () => {
+      const v = +$('p-offer').value;
+      if (!v || v < 1) return toast('Ingresa un monto válido');
+      send(`💰 Mi oferta: ${fmt(v)}`);
+    };
 
-  function renderPanel() {
-    const t = th(), p = pr();
-    if (!t || !p) return;
-    const panel = $('panel');
-    
-    if (t.estado === 'vendido') {
-      panel.innerHTML = role === 'seller'
-        ? `<span class="tag ok">✓ Venta registrada</span><a class="btn small secondary" href="catalogo.html">Volver al catálogo</a>`
-        : `<span class="tag ok">✓ Compra confirmada</span><button class="btn small accent" id="rate">Calificar vendedor</button>`;
-      if ($('#rate')) {
-        $('#rate').onclick = () => {
-          $('rate-seller').textContent = p.title;
-          $('modal-rate').classList.add('open');
-        };
-      }
-      return;
-    }
-    if (role === 'seller') {
-      const price = t.precio_acordado || p.price;
-      panel.innerHTML = `
-        <label>Cant. acordada:</label>
-        <input type="number" id="p-qty" value="${qtyAgreed}" min="1" step="1" title="Cantidad a descontar del stock">
-        <label>Precio c/u:</label>
-        <input type="number" id="p-price" value="${price}" step="1000" style="width:100px">
-        <button class="btn small accent" id="p-sell">Marcar como Vendido</button>`;
-      $('#p-qty').oninput = (e) => { qtyAgreed = Math.max(1, Math.floor(+e.target.value) || 1); };
-      $('#p-sell').onclick = openModal;
-    } else {
-      panel.innerHTML = `
-        <label>Mi oferta:</label>
-        <input type="number" id="p-offer" value="${t.precio_acordado || Math.round(p.price * .9 / 1000) * 1000}" step="1000" style="width:100px">
-        <button class="btn small" id="p-send-offer">Enviar oferta</button>`;
-      $('#p-send-offer').onclick = () => {
-        const v = +$('#p-offer').value; if (!v) return;
-        T[cur].mensajes.push({ from: 'buyer', time: now(), offer: v, state: 'pending' });
-        renderMsgs();
+    // Vendedor: marcar como vendido
+    const btnSell = $('p-sell');
+    if (btnSell) {
+      btnSell.onclick = () => {
+        const q = Number($('p-qty').value), u = Number($('p-price').value);
+        if (!Number.isInteger(q) || q < 1 || !(u > 0)) return toast('Cantidad entera ≥ 1 y precio mayor a 0');
+        if (q > C.article.stock) return toast(`Stock insuficiente (${C.article.stock})`);
+        $('m-title').textContent = C.article.brand + ' ' + C.article.title;
+        $('m-qty').textContent = q;
+        $('m-unit').textContent = fmt(u);
+        $('m-total').textContent = fmt(q * u);
+        $('modal').dataset.q = q; $('modal').dataset.u = u;
+        $('modal').classList.add('open');
+      };
+      $('m-cancel').onclick = () => $('modal').classList.remove('open');
+      $('m-ok').onclick = async () => {
+        const q = +$('modal').dataset.q, u = +$('modal').dataset.u;
+        $('modal').classList.remove('open');
+        const d = await Store._post(`/api/chat/${C.id}/marcar-venta`, { qty: q, unit: u });
+        if (d.success) {
+          toast('Venta registrada y stock actualizado');
+          send(`✓ Venta confirmada: ${q} × ${fmt(u)} = ${fmt(q * u)}`);
+        }
       };
     }
-  }
-
-  function renderMsgs() {
-    const t = th();
-    if (!t) return;
-    
-    $('msgs').innerHTML = t.mensajes.map((m, i) => {
-      if (m.system) return `<div class="message msg-system ${m.error ? 'msg-error' : ''}" ${m.error ? 'role="alert"' : ''}>${m.text}<span class="time">${m.time}</span></div>`;
-      const mine = m.from === role;
-      if (m.offer) {
-        const st = { pending: 'Pendiente de respuesta', accepted: '✓ Oferta aceptada', rejected: 'Oferta rechazada' }[m.state];
-        const canReply = role === 'seller' && m.from === 'buyer' && m.state === 'pending' && t.estado !== 'vendido';
-        return `<div class="offer-card" style="align-self:${mine ? 'flex-end' : 'flex-start'}">
-          ${mine ? 'Tu oferta' : 'Oferta de ' + (m.from === 'buyer' ? t.buyer : pr().seller)}
-          <b>${fmt(m.offer)}</b><span class="muted">${st}</span>
-          ${canReply ? `<div style="display:flex;gap:6px;margin-top:8px"><button class="btn small" data-accept="${i}">Aceptar</button><button class="btn small secondary" data-reject="${i}">Rechazar</button></div>` : ''}
-          <span class="time muted" style="display:block;font-size:10px;margin-top:4px">${m.time}</span></div>`;
-      }
-      return `<div class="message ${mine ? 'msg-sent' : 'msg-received'}">${m.text}<span class="time">${m.time}</span></div>`;
-    }).join('');
-    $('msgs').scrollTop = $('msgs').scrollHeight;
-  }
-
-  function renderQuick() {
-    const t = th();
-    if (!t || t.estado === 'vendido') return;
-    
-    const sets = {
-      seller: ['¿Te acomoda entregar en metro?', 'Te dejo el último precio', 'Sigue disponible'],
-      buyer: ['¿Sigue disponible?', '¿Dónde haces la entrega?', '¿Tienes más fotos?']
-    };
-    $('quick').innerHTML = sets[role].map(s => `<button type="button" data-q="${s}">${s}</button>`).join('');
-  }
-
-  function renderAll() {
-    renderThreads();
-    renderHead();
-    renderStatus();
-    renderPanel();
-    renderMsgs();
-    renderQuick();
-  }
-
-  function send(text) {
-    if (!text.trim()) return;
-    th().mensajes.push({ from: role, time: now(), text: text.trim() });
-    renderMsgs();
-  }
-
-  function addError(text) {
-    th().mensajes.push({ system: true, error: true, time: now(), text });
-    renderMsgs();
-    toast('No se pudo registrar la venta');
-  }
-
-  function openModal() {
-    const t = th(), p = pr();
-    const q = Number($('#p-qty').value), u = Number($('#p-price').value);
-    if (!Number.isInteger(q) || q < 1 || !(u > 0))
-      return addError('Error: datos inválidos. La cantidad debe ser un entero mayor o igual a 1 y el precio mayor a 0. No se registró la venta.');
-    
-    $('#m-title').textContent = p.brand + ' ' + p.title;
-    $('#m-buyer').textContent = t.buyer;
-    $('#m-qty').textContent = q;
-    $('#m-unit').textContent = fmt(u);
-    $('#m-total').textContent = fmt(q * u);
-    $('#modal').dataset.q = q;
-    $('#modal').dataset.u = u;
-    $('#modal').classList.add('open');
-  }
-
-  $('#m-cancel').onclick = () => $('#modal').classList.remove('open');
-  $('#m-ok').onclick = () => {
-    const t = th(), q = +$('#modal').dataset.q, u = +$('#modal').dataset.u;
-    $('#modal').classList.remove('open');
-    if (q > t.stock)
-      return addError(`Error: stock insuficiente. Stock disponible: ${t.stock}. No se registró la venta.`);
-    
-    // Registrar venta
-    fetch(`/api/chat/${t.id}/marcar-venta`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-      body: JSON.stringify({ qty: q, unit: u })
-    }).then(r => r.json()).then(data => {
-      if (data.success) {
-        t.stock = Math.max(0, t.stock - q);
-        t.estado = 'vendido';
-        t.precio_acordado = u;
-        t.mensajes.push({ system: true, time: now(), text: `✓ Venta confirmada: ${q} × ${fmt(u)} = <b>${fmt(q * u)}</b>. Stock restante: ${t.stock}.` });
-        toast('Venta registrada y stock actualizado');
-        renderAll();
-      } else {
-        addError(data.error || 'Error al confirmar la venta');
-      }
-    });
-  };
-
-  // Modal Calificar
-  $('#rate-cancel').onclick = () => {
-    $('#modal-rate').classList.remove('open');
-  };
-  $('#rate-ok').onclick = () => {
-    const starEl = document.querySelector('input[name="stars"]:checked');
-    if (!starEl) return toast('Por favor selecciona una puntuación de 1 a 5 estrellas');
-    
-    const comment = $('#rate-comment').value;
-    fetch('/api/ratings/', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-      body: JSON.stringify({ productId: pr().id, stars: parseInt(starEl.value), comment })
-    }).then(() => {
-      $('#modal-rate').classList.remove('open');
-      $('#rate').style.display = 'none';
-      toast('¡Gracias por tu valoración!');
-    });
-  };
-
-  // Eventos
-  document.addEventListener('click', (e) => {
-    const t = e.target;
-    if (t.closest('[data-t]')) {
-      cur = Number(t.closest('[data-t]').dataset.t);
-      qtyAgreed = 1;
-      renderAll();
-    }
-    if (t.dataset.q) send(t.dataset.q);
-    if (t.dataset.accept) {
-      const m = th().mensajes[t.dataset.accept];
-      m.state = 'accepted';
-      th().estado = 'acordado';
-      th().precio_acordado = m.offer;
-      th().mensajes.push({ from: 'seller', time: now(), text: `Acepto ${fmt(m.offer)}. Coordinemos la entrega.` });
-      renderAll();
-    }
-    if (t.dataset.reject) {
-      th().mensajes[t.dataset.reject].state = 'rejected';
-      th().mensajes.push({ from: 'seller', time: now(), text: 'Gracias por la oferta, pero no alcanzo a bajar tanto el precio.' });
-      renderAll();
-    }
-  });
-  $('#form').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const textInput = document.getElementById('text');
-    send(textInput.value);
-    textInput.value = '';
-  });
-  $('#r-seller').onclick = () => { role = 'seller'; renderAll(); };
-  $('#r-buyer').onclick = () => { role = 'buyer'; renderAll(); };
-
-  function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-      const cookies = document.cookie.split(';');
-      for (let i = 0; i < cookies.length; i++) {
-        const cookie = cookies[i].trim();
-        if (cookie.substring(0, name.length + 1) === (name + '=')) {
-          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-          break;
+        // Comprador: valorar al vendedor
+    const btnRate = $('p-rate');
+    if (btnRate) {
+      btnRate.onclick = () => $('modal-rate').classList.add('open');
+      $('rate-cancel').onclick = () => $('modal-rate').classList.remove('open');
+      $('rate-ok').onclick = async () => {
+        const st = document.querySelector('input[name="stars"]:checked');
+        if (!st) return toast('Selecciona de 1 a 5 estrellas');
+        const d = await Store._post('/api/ratings/', {
+          chatId: C.id, stars: +st.value, comment: $('rate-comment').value.trim()
+        });
+        if (d.success) {
+          $('modal-rate').classList.remove('open');
+          btnRate.style.display = 'none';
+          toast('¡Gracias por tu valoración!');
         }
-      }
+      };
     }
-    return cookieValue;
+    renderMsgs();
   }
-
-  renderAll();
 </script>
 {% endblock %}

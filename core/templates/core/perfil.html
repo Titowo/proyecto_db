@@ -16,7 +16,8 @@
       <p class="muted" style="font-size:12px;margin-top:8px" id="h-meta">📍 {{ user.ubicacion|default:'Santiago' }} · Entrega en: {{ user.punto_entrega|default:'—' }} · Contacto: {{ user.contacto|default:'Solo chat de la plataforma' }}</p>
     </div>
     <button class="btn secondary" id="btn-edit">Editar perfil</button>
-    <button class="btn" id="btn-logout" style="margin-left: 10px; background: var(--danger); color: white; border: none;">Cerrar Sesion</button>
+    <button type="button" class="btn secondary" onclick="document.getElementById('logout-form').submit();">Cerrar sesión</button>
+
   </div>
 
   <!-- Selector de vista -->
@@ -60,16 +61,16 @@
     <div class="stats" id="b-stats"></div>
     <div class="two-col">
       <div class="panel">
-        <h3>Mis compras <a class="link-btn" href="chat.html">Ir a mis chats</a></h3>
+        <h3>Mis compras <a class="link-btn" href="{% url 'chat' %}">Ir a mis chats</a></h3>
         <div id="b-orders"></div>
       </div>
       <div>
         <div class="panel">
-          <h3>Favoritos <a class="link-btn" href="carrito.html#favoritos">Ver todos</a></h3>
+          <h3>Favoritos <a class="link-btn" href="{% url 'carrito' %}#favoritos">Ver todos</a></h3>
           <div id="b-favs"></div>
         </div>
         <div class="panel">
-          <h3>Carritos activos <a class="link-btn" href="carrito.html">Ir al carrito</a></h3>
+          <h3>Carritos activos <a class="link-btn" href="{% url 'carrito' %}">Ir al carrito</a></h3>
           <div id="b-carts"></div>
         </div>
       </div>
@@ -80,7 +81,7 @@
   <section id="seller-view" style="display:none">
     <div class="stats" id="s-stats"></div>
     <div class="panel">
-      <h3>Mis publicaciones <a class="btn small accent" href="publicar.html">+ Nueva publicación</a></h3>
+      <h3>Mis publicaciones <a class="btn small accent" href="{% url 'publicar' %}">+ Nueva publicación</a></h3>
       <div id="s-list"></div>
     </div>
     </div>
@@ -223,7 +224,7 @@
     }).join('') : '<div class="body muted">Aún no tienes compras.</div>';
 
     document.getElementById('b-favs').innerHTML = favs.length ? favs.map(p => `
-      <div class="list-row"><img src="${p.img}" alt=""><div><h4><a href="producto.html?id=${p.id}">${p.title}</a></h4><div class="sub">${p.seller || 'Vendedor'}</div></div><div class="end price">${fmt(p.price)}</div></div>`).join('')
+      <div class="list-row"><img src="${p.img}" alt=""><div><h4><a href="/producto/${p.id}/">${p.title}</a></h4><div class="sub">${p.seller || 'Vendedor'}</div></div><div class="end price">${fmt(p.price)}</div></div>`).join('')
       : '<div class="body muted">Sin favoritos aún.</div>';
 
     const keys = Object.keys(bySeller);
@@ -258,14 +259,14 @@
 
     document.getElementById('s-list').innerHTML = items.length ? items.map(p => `
       <div class="list-row" style="grid-template-columns:64px 1fr auto">
-        <a href="producto.html?id=${p.id}"><img src="${p.img}" alt=""></a>
+        <a href="/producto/${p.id}/"><img src="${p.img}" alt=""></a>
         <div><h4>${esc(p.brand)} ${esc(p.title)}</h4><div class="sub">Talla ${esc(p.size)} · ${p.cond}</div>
-          <div class="sub" style="margin-top:6px"><label>Precio <input class="inline-in" type="number" step="1000" value="${p.price}" data-price="${p.id}" style="width:100px"></label>
+          <div class="sub" style="margin-top:6px"><label>Precio <input class="inline-in" type="number" step="1" value="${p.price}" data-price="${p.id}" style="width:100px"></label>
           &nbsp;<label>Stock <input class="inline-in" type="number" min="0" value="${p.stock}" data-stock="${p.id}" style="width:60px"></label></div></div>
         <div class="end"><span class="tag ${p.stock > 0 ? 'ok' : ''}">${p.stock > 0 ? 'Activa' : 'Agotada'}</span><br>
           <button class="link-btn" data-del="${p.id}" style="margin-top:8px">Eliminar</button></div>
       </div>`).join('')
-      : '<div class="body muted">No tienes publicaciones. <a href="publicar.html" style="text-decoration:underline;font-weight:bold">Crea la primera</a>.</div>';
+      : '<div class="body muted">No tienes publicaciones. <a href="{% url 'publicar' %}" style="text-decoration:underline;font-weight:bold">Crea la primera</a>.</div>';
 
     document.getElementById('s-sales').innerHTML = sales.length ? sales.map(s => {
       const prod = publicaciones.find(p => p.id === s.productId);
@@ -306,7 +307,7 @@
   };
   document.getElementById('e-cancel').onclick = () => document.getElementById('edit-panel').style.display = 'none';
   
-  document.getElementById('edit-form').onsubmit = (e) => {
+  document.getElementById('edit-form').onsubmit = async (e) => {
     e.preventDefault();
     let h = document.getElementById('e-handle').value.trim();
     if (!h.startsWith('@')) h = '@' + h;
@@ -324,25 +325,68 @@
       biografia: document.getElementById('e-bio').value.trim()
     };
     
-    // Actualizar en el DOM
-    Object.assign(prof, updated);
-    renderHero();
-    renderSeller();
-    document.getElementById('edit-panel').style.display = 'none';
-    toast('Perfil actualizado');
+    try {
+      const response = await fetch('/api/perfil/actualizar/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify(updated)
+      });
+      const data = await response.json();
+      if (data.success) {
+        Object.assign(prof, updated);
+        renderHero();
+        renderSeller();
+        document.getElementById('edit-panel').style.display = 'none';
+        toast('Perfil actualizado');
+      } else {
+        toast('Error: ' + (data.error || 'No se pudo actualizar'));
+      }
+    } catch (err) {
+      toast('Error de conexión');
+    }
   };
 
-  document.addEventListener('change', (e) => {
-    const t = e.target;
-    if (t.dataset.price) {
-      const p = publicaciones.find(p => String(p.id) === String(t.dataset.price));
-      if (p) { p.price = +t.value; toast('Precio actualizado'); }
+document.addEventListener('change', async (e) => {
+  const t = e.target;
+  // Detectar si se cambió un precio o un stock
+  if (t.dataset.price || t.dataset.stock) {
+    const id = t.dataset.price || t.dataset.stock;
+    const p = publicaciones.find(p => String(p.id) === String(id));
+    
+    if (p) {
+      // 1. Actualizar el valor localmente
+      if (t.dataset.price) p.price = +t.value;
+      if (t.dataset.stock) p.stock = Math.max(0, +t.value);
+
+      // 2. Enviar los datos al servidor de Django
+      try {
+        const response = await fetch(`/api/articulos/actualizar/${id}/`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json', 
+            'X-CSRFToken': getCookie('csrftoken') // Requerido por Django
+          },
+          body: JSON.stringify({
+            precio: p.price,
+            stock: p.stock
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          if (t.dataset.stock) renderSeller();
+          toast(t.dataset.price ? 'Precio actualizado en el servidor' : 'Stock actualizado en el servidor');
+        } else {
+          toast('Error: ' + (data.error || 'No se guardó'));
+        }
+      } catch (err) {
+        console.error(err);
+        toast('Error de conexión');
+      }
     }
-    if (t.dataset.stock) {
-      const p = publicaciones.find(p => String(p.id) === String(t.dataset.stock));
-      if (p) { p.stock = Math.max(0, +t.value); renderSeller(); toast('Stock actualizado'); }
-    }
-  });
+  }
+});
   
   document.addEventListener('click', (e) => {
     if (e.target.dataset.del) {

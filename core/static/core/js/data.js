@@ -92,3 +92,104 @@ document.addEventListener('click', (e) => {
   if (!e.target.closest('#menu-list')) closeMenu();
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
+
+
+/* ===== Store: carrito y favoritos contra el servidor ===== */
+function getCookie(name) {
+  const m = document.cookie.split(';').map(c => c.trim()).find(c => c.startsWith(name + '='));
+  return m ? decodeURIComponent(m.substring(name.length + 1)) : null;
+}
+
+const Store = {
+  _favs: new Set(), _cart: 0, _favCount: 0, logged: false,
+
+  async _post(url, body) {
+    try {
+      const r = await fetch(url, {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') || '' },
+        body: JSON.stringify(body)
+      });
+      const d = await r.json().catch(() => ({ success: false, error: 'Respuesta inválida del servidor' }));
+      if (!d.success) toast(d.error || 'Ocurrió un error');
+      return d;
+    } catch (e) {
+      toast('Error de conexión');
+      return { success: false };
+    }
+  },
+
+  async init() {
+    try {
+      const d = await (await fetch('/api/estado/', { credentials: 'same-origin' })).json();
+      this.logged = d.logged;
+      this._favs = new Set((d.favs || []).map(String));
+      this.updateBadges(d.total_carrito, d.total_favs);
+    } catch (e) {}
+    this.refreshHearts();
+  },
+
+  isFav(id) { return this._favs.has(String(id)); },
+
+  async toggleFav(id) {
+    const d = await this._post('/api/favoritos/toggle/', { id: String(id) });
+    if (!d.success) return null;
+    d.is_fav ? this._favs.add(String(id)) : this._favs.delete(String(id));
+    this.updateBadges(d.total_carrito, d.total_favs);
+    this.refreshHearts();
+    document.dispatchEvent(new CustomEvent('store:favs', { detail: { id: String(id), isFav: d.is_fav } }));
+    return d.is_fav;
+  },
+
+  async addToCart(id, qty = 1) {
+    const d = await this._post('/api/carrito/add/', { id: String(id), qty });
+    if (d.success) this.updateBadges(d.total_carrito, d.total_favs);
+    return d.success;
+  },
+  async setQty(id, qty) {
+    const d = await this._post('/api/carrito/set/', { id: String(id), qty });
+    if (d.success) this.updateBadges(d.total_carrito, d.total_favs);
+    return d;
+  },
+  async removeFromCart(id, toFav = false) {
+    const d = await this._post('/api/carrito/remove/', { id: String(id), to_fav: toFav });
+    if (d.success) {
+      if (toFav) this._favs.add(String(id));
+      this.updateBadges(d.total_carrito, d.total_favs);
+    }
+    return d;
+  },
+  async clearCart(ids) {
+    const d = await this._post('/api/carrito/clear/', { ids });
+    if (d.success) this.updateBadges(d.total_carrito, d.total_favs);
+    return d;
+  },
+
+  refreshHearts() {
+    document.querySelectorAll('.fav-btn[data-fav]').forEach(b => {
+      const on = this.isFav(b.dataset.fav);
+      b.classList.toggle('on', on);
+      b.textContent = on ? '♥' : '♡';
+    });
+  },
+
+  updateBadges(cart, fav) {
+    if (typeof cart === 'number') this._cart = cart;
+    if (typeof fav === 'number') this._favCount = fav;
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    set('badge-cart', this._cart);
+    set('badge-fav', this._favCount);
+    set('badge-menu', this._cart + this._favCount);
+  }
+};
+
+/* Corazones de cualquier tarjeta (funciona aunque se re-rendericen) */
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('.fav-btn[data-fav]');
+  if (!b) return;
+  e.preventDefault(); e.stopPropagation();
+  await Store.toggleFav(b.dataset.fav);
+});
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => Store.init());
+else Store.init();

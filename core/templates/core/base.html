@@ -23,7 +23,7 @@
       <a href="{% url 'catalogo' %}" class="{% if page_id == 'catalogo' %}active{% endif %}">Catálogo</a>
       
       <!-- Mostramos el menú completo si hay sesión o si quieres forzarlo para pruebas -->
-      {% if request.session.id_usuario or True %}
+      {% if request.session.id_usuario %}
         <div class="dropdown" id="menu-dd">
           <button type="button" class="dd-btn {% if page_id == 'favoritos' or page_id == 'carrito' or page_id == 'chat' or page_id == 'publicar' or page_id == 'admin' %}active{% endif %}" id="menu-btn" aria-haspopup="true" aria-expanded="false">
             Menú ▾<span class="badge" id="badge-menu">0</span>

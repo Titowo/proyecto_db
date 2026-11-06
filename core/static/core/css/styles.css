@@ -403,3 +403,28 @@ body.chat-body { display: flex; flex-direction: column; height: 100vh; overflow:
   .pdp-info h1 { font-size: 24px; }
   .pdp-price { font-size: 28px; }
 }
+
+
+/* ---------- Catálogo: filtros a la izquierda, fijos y compactos ---------- */
+@media (min-width: 901px) {
+  .container {
+    max-width: none;
+    margin: 20px 0 60px;
+    padding: 0 24px 0 12px;      /* pegado a la izquierda */
+    grid-template-columns: 250px 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+  .sidebar {
+    position: sticky;            /* queda fijo mientras bajas */
+    top: 80px;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;            /* si no cabe, scroll interno, sin salirse */
+    padding: 14px 14px;
+    scrollbar-width: thin;
+  }
+  .sidebar .filter-group { margin-bottom: 12px; padding-bottom: 12px; }
+  .sidebar .filter-group h3 { margin-bottom: 8px; font-size: 12px; }
+  .sidebar .filter-group label { padding: 5px 10px; margin-bottom: 4px; font-size: 13px; }
+  .sidebar .sheet-head { display: none; }
+}

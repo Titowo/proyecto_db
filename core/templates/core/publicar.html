@@ -10,22 +10,15 @@
 
   <div class="panel">
     <h3>Datos del artículo</h3>
-    {% if error %}
-    <div class="form-error" style="background: #fdecea; border: 1px solid #e5a29b; color: #c0392b; padding: 12px 14px; border-radius: 4px; font-size: 13px; margin-bottom: 16px;">
-      {{ error }}
-    </div>
-    {% endif %}
-    
+    <div class="form-error" id="form-error" style="margin:16px 18px 0;{% if not error %}display:none;{% endif %}">{{ error }}</div>
+
     <form class="body form-grid" id="pub-form" method="POST" enctype="multipart/form-data">
       {% csrf_token %}
       <div>
         <label for="f-brand">Marca</label>
-        <input id="f-brand" list="brands" maxlength="50" name="marca" placeholder="Ej: Nike" required>
+        <input id="f-brand" list="brands" maxlength="40" name="marca" placeholder="Ej: Nike (o escribe otra)" required>
         <datalist id="brands">
-          <option value="Nike">
-          <option value="Jordan">
-          <option value="Stüssy">
-          <option value="Supreme">
+          <option value="Nike"><option value="Jordan"><option value="Stüssy"><option value="Supreme">
         </datalist>
       </div>
       <div>
@@ -38,95 +31,100 @@
       </div>
       <div>
         <label for="f-price">Precio (CLP)</label>
-        <input id="f-price" type="number" name="precio" min="1" step="1000" placeholder="120000" required>
+        <input id="f-price" type="number" name="precio" min="1" step="1" placeholder="120000" required>
       </div>
       <div>
         <label for="f-stock">Stock</label>
         <input id="f-stock" type="number" name="stock" min="1" step="1" value="1" required>
       </div>
+
       <div>
         <label for="f-cat">Categoría</label>
-        <select id="f-cat" name="categoria" required>
+        <select id="f-cat" data-otro="f-cat-otro" required>
           <option value="">Selecciona una categoría</option>
           <option value="Zapatillas">Zapatillas</option>
           <option value="Polerones">Polerones</option>
           <option value="Gorros">Gorros</option>
+          {% for c in cats_extra %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+          <option value="__otro__">+ Otra (escribir)…</option>
         </select>
+        <input id="f-cat-otro" type="text" maxlength="40" placeholder="Escribe la categoría" style="display:none;margin-top:8px">
       </div>
+
       <div>
         <label for="f-size">Talla</label>
-        <select id="f-size" name="talla" required>
+        <select id="f-size" data-otro="f-size-otro" required>
           <option value="US 8 / S">US 8 / S</option>
           <option value="US 9 / M">US 9 / M</option>
           <option value="US 10 / L" selected>US 10 / L</option>
           <option value="Única">Talla única</option>
+          {% for t in tallas_extra %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+          <option value="__otro__">+ Otra (escribir)…</option>
         </select>
+        <input id="f-size-otro" type="text" maxlength="40" placeholder="Ej: 42 EU, XL, 28" style="display:none;margin-top:8px">
       </div>
+
       <div class="full">
         <label for="f-cond">Estado</label>
-        <select id="f-cond" name="estado_conservacion" required>
+        <select id="f-cond" data-otro="f-cond-otro" required>
           <option value="">Selecciona estado</option>
           <option value="Nuevo">Nuevo</option>
           <option value="Usado">Usado</option>
+          {% for e in estados_extra %}<option value="{{ e }}">{{ e }}</option>{% endfor %}
+          <option value="__otro__">+ Otro (escribir)…</option>
         </select>
+        <input id="f-cond-otro" type="text" maxlength="40" placeholder="Ej: Casi nuevo" style="display:none;margin-top:8px">
       </div>
 
       <div class="full">
         <label>Fotos (hasta 10 · JPG, PNG o WebP · máx. 5 MB c/u)</label>
         <label class="photo-drop" for="f-files">+ Agregar fotos <b id="photo-count">0/10</b></label>
         <input id="f-files" type="file" accept="image/jpeg,image/png,image/webp" multiple style="display:none;">
-        <div class="photo-grid" id="photos" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px;"></div>
+        <div class="photo-grid" id="photos"></div>
         <p class="muted" style="font-size:12px;margin-top:8px">Marca cuál será la foto principal: es la que se ve en el catálogo.</p>
       </div>
 
       <div class="full" style="display:flex;gap:10px;justify-content:flex-end">
-        <a class="btn secondary" href="perfil.html#seller">Cancelar</a>
-        <button type="submit" class="btn accent">Publicar</button>
+        <a class="btn secondary" href="{% url 'perfil' %}#seller">Cancelar</a>
+        <button type="submit" class="btn accent" id="btn-pub">Publicar</button>
       </div>
     </form>
   </div>
 </div>
-
-<!-- Estado del usuario -->
-<script id="user-state" type="application/json">
-{
-  "user": {{ user_data|safe|default:'null' }}
-}
-</script>
 {% endblock %}
 
 {% block scripts %}
 <script src="{% static 'core/js/data.js' %}"></script>
 <script>
-  // Verificar si el usuario está logueado
-  if (!window.currentUser) {
-    alert('Debes iniciar sesión para publicar un artículo');
-    window.location.href = 'login.html';
-  }
-
   const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const MAX_PHOTOS = 10, MAX_BYTES = 5 * 1024 * 1024, TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-  let photos = [];
+  let photos = [];   // data URLs reducidas
   let mainIdx = 0;
 
-  const showError = (list) => {
+  function showError(list) {
     const box = $('form-error');
-    if (!box) return;
-    if (!list) { box.style.display = 'none'; return; }
-    box.innerHTML = list.map(t => '• ' + t).join('<br>');
+    if (!list || !list.length) { box.style.display = 'none'; return; }
+    box.innerHTML = list.map(t => '• ' + esc(t)).join('<br>');
     box.style.display = '';
-  };
-
-  // Crear contenedor de errores si no existe
-  if (!document.getElementById('form-error')) {
-    const errorDiv = document.createElement('div');
-    errorDiv.id = 'form-error';
-    errorDiv.className = 'form-error';
-    errorDiv.style.display = 'none';
-    $('f-desc').parentNode.insertBefore(errorDiv, $('f-desc').nextSibling);
   }
 
-  /* Reduce la foto a 800 px para que quepa en localStorage */
+  /* ---- Desplegables con opción "Otra" ---- */
+  document.querySelectorAll('select[data-otro]').forEach(sel => {
+    const inp = $(sel.dataset.otro);
+    sel.addEventListener('change', () => {
+      const on = sel.value === '__otro__';
+      inp.style.display = on ? '' : 'none';
+      inp.required = on;
+      if (on) inp.focus();
+    });
+  });
+  const valorDe = (selId) => {
+    const s = $(selId);
+    return s.value === '__otro__' ? $(s.dataset.otro).value.trim() : s.value;
+  };
+
+  /* ---- Fotos ---- */
   function shrink(file) {
     return new Promise((resolve, reject) => {
       const fr = new FileReader();
@@ -139,7 +137,7 @@
           const ctx = c.getContext('2d');
           ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
           ctx.drawImage(img, 0, 0, c.width, c.height);
-          resolve(c.toDataURL('image/jpeg', 0.75));
+          resolve(c.toDataURL('image/jpeg', 0.8));
         };
         img.onerror = reject; img.src = fr.result;
       };
@@ -158,22 +156,20 @@
   }
 
   $('f-files').addEventListener('change', async (e) => {
+    const files = [...e.target.files];
+    e.target.value = '';
     const errors = [];
-    for (const f of e.target.files) {
+    for (const f of files) {
       if (photos.length >= MAX_PHOTOS) { errors.push('Máximo ' + MAX_PHOTOS + ' fotos.'); break; }
       if (!TYPES.includes(f.type)) { errors.push(f.name + ': formato no permitido (usa JPG, PNG o WebP).'); continue; }
       if (f.size > MAX_BYTES) { errors.push(f.name + ': supera los 5 MB.'); continue; }
       try { photos.push(await shrink(f)); } catch (err) { errors.push(f.name + ': no se pudo leer la imagen.'); }
     }
-    e.target.value = '';
     showError(errors); renderPhotos();
   });
 
   $('photos').addEventListener('change', (e) => {
-    if (e.target.name === 'main') {
-      mainIdx = Number(e.target.value);
-      renderPhotos();
-    }
+    if (e.target.name === 'main') { mainIdx = Number(e.target.value); renderPhotos(); }
   });
   $('photos').addEventListener('click', (e) => {
     if (e.target.dataset.rm === undefined) return;
@@ -183,14 +179,12 @@
     renderPhotos();
   });
 
-  $('pub-form').onsubmit = async (e) => {
+  /* ---- Envío ---- */
+  $('pub-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const user = window.currentUser;
-    const brand = $('f-brand').value.trim();
-    const title = $('f-title').value.trim();
-    const desc = $('f-desc').value.trim();
-    const price = Number($('f-price').value);
-    const stock = Number($('f-stock').value);
+    const brand = $('f-brand').value.trim(), title = $('f-title').value.trim(), desc = $('f-desc').value.trim();
+    const price = Number($('f-price').value), stock = Number($('f-stock').value);
+    const cat = valorDe('f-cat'), size = valorDe('f-size'), cond = valorDe('f-cond');
 
     const errors = [];
     if (!brand) errors.push('La marca es obligatoria.');
@@ -198,64 +192,50 @@
     if (!desc) errors.push('La descripción es obligatoria.');
     if (!(price > 0)) errors.push('El precio debe ser mayor a 0.');
     if (!Number.isInteger(stock) || stock < 1) errors.push('El stock debe ser un entero mayor o igual a 1.');
+    if (!cat) errors.push('Indica la categoría.');
+    if (!size) errors.push('Indica la talla.');
+    if (!cond) errors.push('Indica el estado.');
     if (!photos.length) errors.push('Agrega al menos una foto.');
-    if (errors.length) { showError(errors); return; }
+    if (errors.length) { showError(errors); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
     showError([]);
 
-    const opt = $('f-size').selectedOptions[0];
-    const main = photos[mainIdx];
+    const btn = $('btn-pub');
+    btn.disabled = true; btn.textContent = 'Publicando…';
 
-    // Crear artículo
-    const formData = new FormData();
-    formData.append('nombre', title);
-    formData.append('descripcion', desc);
-    formData.append('precio', price);
-    formData.append('stock', stock);
-    formData.append('talla', opt.textContent);
-    formData.append('marca', brand);
-    formData.append('estado_conservacion', $('f-cond').value);
-    formData.append('categoria', $('f-cat').value);
+    const fd = new FormData();
+    fd.append('nombre', title);
+    fd.append('descripcion', desc);
+    fd.append('precio', price);
+    fd.append('stock', stock);
+    fd.append('marca', brand);
+    fd.append('categoria', cat);
+    fd.append('talla', size);
+    fd.append('estado_conservacion', cond);
 
-    // Agregar fotos
-    const photoInputs = document.querySelectorAll('input[type="file"]');
-    for (const input of photoInputs) {
-      const files = input.files;
-      for (let i = 0; i < files.length; i++) {
-        formData.append('fotos', files[i]);
+    // La foto principal va primera: el servidor marca la primera como principal
+    const order = [mainIdx, ...photos.map((_, i) => i).filter(i => i !== mainIdx)];
+    for (const [n, i] of order.entries()) {
+      const blob = await (await fetch(photos[i])).blob();
+      fd.append('imagenes', blob, `foto${n + 1}.jpg`);
+    }
+
+    try {
+      const token = document.querySelector('[name=csrfmiddlewaretoken]').value;
+      const r = await fetch(location.pathname, {
+        method: 'POST', body: fd, credentials: 'same-origin',
+        headers: { 'X-CSRFToken': token, 'X-Requested-With': 'XMLHttpRequest' }
+      });
+      const d = await r.json().catch(() => null);
+      if (r.ok && d && d.success) {
+        toast('Publicación creada');
+        setTimeout(() => { location.href = d.redirect || '/perfil/'; }, 800);
+        return;
       }
+      showError([(d && d.error) || ('Error al crear la publicación (' + r.status + ')')]);
+    } catch (err) {
+      showError(['Error de conexión']);
     }
-    if (photos.length > 0) {
-      formData.append('index_principal', mainIdx);
-    }
-
-    const response = await fetch({% url 'publicar' %}', {
-      method: 'POST',
-      body: formData,
-      headers: { 'X-CSRFToken': getCookie('csrftoken') }
-    });
-    
-    const result = await response.json();
-    if (result.success) {
-      toast('Publicación creada');
-      setTimeout(() => { window.location.href = 'perfil.html'; }, 800);
-    } else {
-      showError([result.error || 'Error al crear la publicación']);
-    }
-  };
-
-  function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-      const cookies = document.cookie.split(';');
-      for (let i = 0; i < cookies.length; i++) {
-        const cookie = cookies[i].trim();
-        if (cookie.substring(0, name.length + 1) === (name + '=')) {
-          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-          break;
-        }
-      }
-    }
-    return cookieValue;
-  }
+    btn.disabled = false; btn.textContent = 'Publicar';
+  });
 </script>
 {% endblock %}

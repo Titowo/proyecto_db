@@ -10,6 +10,7 @@
   <!-- Caja de Inicio de Sesión (RF2) -->
   <div class="auth-box" id="box-login">
     <h2>Iniciar Sesión</h2>
+    {% if ok %}<div style="background:#eaf7ef;border:1px solid #9fd4b2;color:#1e8e4e;padding:12px 14px;border-radius:4px;font-size:13px;margin-bottom:16px;">{{ ok }}</div>{% endif %}
     {% if error and not show_register %}
     <div class="form-error" style="background: #fdecea; border: 1px solid #e5a29b; color: #c0392b; padding: 12px 14px; border-radius: 4px; font-size: 13px; margin-bottom: 16px;">
       {{ error }}
@@ -79,17 +80,11 @@
 
 </div>
 
-<!-- Usuario actual para JS (injetado por Django) -->
-<script id="user-data" type="application/json">
-{{ user_data|safe|default:'null' }}
-</script>
 {% endblock %}
 
 {% block scripts %}
 <script>
-// Usuario actual desde Django (injetado)
-window.currentUser = JSON.parse(document.getElementById('user-data').textContent);
-
+window.currentUser = window.currentUser || null;
 // Alternar vistas
 document.getElementById('to-register').onclick = function(e) {
   e.preventDefault();

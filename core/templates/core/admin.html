@@ -28,41 +28,35 @@
         <thead>
           <tr><th>Fecha</th><th>Artículo reportado</th><th>Denunciante</th><th>Motivo</th><th>Estado</th><th>Acciones</th></tr>
         </thead>
-        <tbody id="rows">
-          {% for r in reportes %}
-          <tr>
-            <td>{{ r.fecha|date:"d-m-Y" }}</td>
-            <td>
-              <a href="{% url 'producto' r.articulo.id %}">
-                <b>{{ r.articulo.marca }} {{ r.articulo.nombre }}</b>
-              </a>
-              <div class="sub">{{ r.articulo.vendedor.nombre_usuario|default:r.articulo.vendedor.username }}</div>
-            </td>
-            <td>{{ r.denunciante.nombre_usuario|default:r.denunciante.username|default:'Anónimo' }}</td>
-            <td class="reason">{{ r.motivo }}{% if r.detalles %} - Detalles: {{ r.detalles }}{% endif %}</td>
-            <td>
-              <span class="tag {% if r.estado == 'Revisado' %}ok{% elif r.estado == 'Pendiente' %}warn{% endif %}">
-                {{ r.estado }}
-              </span>
-            </td>
-            <td class="acts">
-              {% if r.estado == 'Pendiente' %}
-              <form method="POST" action="{% url 'actualizar_reporte' r.id %}" style="display:inline;">
-                {% csrf_token %}
-                <input type="hidden" name="estado" value="Revisado">
-                <button class="btn small accent" type="submit">Marcar revisado</button>
-                <input type="hidden" name="estado" value="Descartado">
-                <button class="btn small secondary" type="submit" onclick="return confirm('¿Descartar este reporte?')">Descartar</button>
-              </form>
-              {% else %}
-              —
-              {% endif %}
-            </td>
-          </tr>
-          {% empty %}
-          <tr><td colspan="6" class="empty-cell">No hay reportes.</td></tr>
-          {% endfor %}
-        </tbody>
+              <tbody id="rows">
+                  {% for r in reportes %}
+                  <tr>
+                    <td>{{ r.fecha }}</td>
+                    <td>
+                      {% if r.art_id %}
+                      <a href="{% url 'producto' r.art_id %}"><b>{{ r.art_nombre }}</b></a>
+                      {% else %}<b>{{ r.art_nombre }}</b>{% endif %}
+                      <div class="sub">{{ r.vendedor }}</div>
+                    </td>
+                    <td>{{ r.denunciante }}</td>
+                    <td class="reason">{{ r.motivo }}</td>
+                    <td>
+                      <span class="tag {% if r.estado == 'Revisado' %}ok{% elif r.estado == 'Pendiente' %}warn{% endif %}">{{ r.estado }}</span>
+                    </td>
+                    <td class="acts">
+                      {% if r.estado == 'Pendiente' %}
+                      <form method="POST" action="{% url 'actualizar_reporte' r.id %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button class="btn small accent" type="submit" name="estado" value="Revisado">Marcar revisado</button>
+                        <button class="btn small secondary" type="submit" name="estado" value="Descartado" onclick="return confirm('¿Descartar este reporte?')">Descartar</button>
+                      </form>
+                      {% else %}—{% endif %}
+                    </td>
+                  </tr>
+                  {% empty %}
+                  <tr><td colspan="6" class="empty-cell">No hay reportes.</td></tr>
+                  {% endfor %}
+              </tbody>
       </table>
     </div>
   </div>
