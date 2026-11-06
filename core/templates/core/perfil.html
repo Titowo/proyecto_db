@@ -61,7 +61,7 @@
     <div class="stats" id="b-stats"></div>
     <div class="two-col">
       <div class="panel">
-        <h3>Mis compras <a class="link-btn" href="{% url 'chat' %}">Ir a mis chats</a></h3>
+        <h3>Mis compras <a href="{% url 'chat' %}" class="link-btn" class="{% if page_id == 'chat' %}active{% endif %}">Ir a mis chats</a></h3>
         <div id="b-orders"></div>
       </div>
       <div>
@@ -87,7 +87,7 @@
     </div>
     <div class="two-col">
       <div class="panel">
-        <h3>Ventas recientes <a class="link-btn" href="chat.html">Ir a mis chats</a></h3>
+        <h3>Ventas recientes <a href="{% url 'chat' %}"class="link-btn" class="{% if page_id == 'chat' %}active{% endif %}">Ir a mis chats</a></h3>
         <div id="s-sales"></div>
       </div>
       <div class="panel">
@@ -428,12 +428,6 @@ document.addEventListener('change', async (e) => {
     }
     return cookieValue;
   }
-  
-  document.getElementById('btn-logout').onclick = () => {
-    fetch('/logout/', { method: 'POST', headers: { 'X-CSRFToken': getCookie('csrftoken') } })
-      .then(() => window.location.href = 'catalogo.html');
-  };
-
   renderHero(); renderBuyer(); renderSeller();
   setView(location.hash === '#seller' ? 'seller' : 'buyer');
 </script>
