@@ -122,13 +122,28 @@ def carrito(request):
     favoritos = []
     grupos = {}
     
+    # Obtener artículos del usuario (para mostrar en favoritos)
+    articulos_disponibles = []
     if usuario_actual:
         user = Usuario.objects(id=ObjectId(usuario_actual)).first()
+        articulos_disponibles = Articulo.objects(estado_publicacion__ne='Vendido').limit(20)
+    
+    # Obtener IDs de favoritos del localStorage (se pasa desde el JS)
+    from django.contrib.sessions.backends.signed_cookies import SessionStore
+    favs_ids = request.COOKIES.get('c2c_favs', '[]')
+    try:
+        import json
+        favoritos_ids = json.loads(favs_ids)
+        favoritos = Articulo.objects(id__in=[ObjectId(fid) for fid in favoritos_ids if fid])
+    except:
+        favoritos = []
     
     context = {
         'grupos': grupos,
         'favoritos': favoritos,
-        'favoritos_count': 0
+        'favoritos_count': len(favoritos),
+        'articulos_disponibles': articulos_disponibles,
+        'favoritos_ids': favoritos_ids if isinstance(favoritos_ids, list) else []
     }
     return render(request, 'core/carrito.html', context)
 
@@ -187,6 +202,30 @@ def perfil(request):
     # Obtener publicaciones del usuario
     publicaciones = Articulo.objects(vendedor__id_usuario=str(user.id)).order_by('-fecha_publicacion')
     
+    # Obtener ventas del usuario
+    ventas_recientes = []
+    valoraciones_lista = []
+    
+    if usuario_actual:
+        from .models import Venta, Valoracion
+        ventas = Venta.objects(id_chat__id_vendedor__id_usuario=str(user.id)).order_by('-fecha_compra')
+        
+        for v in ventas:
+            if v.detalles:
+                for detalle in v.detalles:
+                    articulo = Articulo.objects(id=detalle.id_articulo).first()
+                    if articulo:
+                        ventas_recientes.append({
+                            'producto': articulo,
+                            'comprador': {'nombre_usuario': 'Cliente', 'id': str(user.id)},  # Placeholder
+                            'qty': detalle.cantidad_acordada,
+                            'unit': detalle.precio_unitario,
+                            'fecha_compra': v.fecha_compra,
+                            'estado': 'Entregada'
+                        })
+        
+        valoraciones_lista = list(Valoracion.objects(id_receptor=user.id))
+    
     context = {
         'user': user,
         'compras_count': 0,
@@ -200,7 +239,9 @@ def perfil(request):
         'revisados': 0,
         'descartados': 0,
         'total': 0,
-        'publicaciones': publicaciones
+        'publicaciones': publicaciones,
+        'ventas_recientes': ventas_recientes,
+        'valoraciones': valoraciones_lista
     }
     return render(request, 'core/perfil.html', context)
 
@@ -293,7 +334,16 @@ def publicar(request):
     pipeline = [{"$group": {"_id": "$categoria.nombre"}}]
     categorias = [cat['_id'] for cat in coleccion.aggregate(pipeline)]
     
-    context = {'categorias': categorias}
+    # Datos de usuario para JS
+    user_data = None
+    if 'id_usuario' in request.session:
+        user_data = {
+            'id': str(request.session.get('id_usuario')),
+            'nombre_usuario': request.session.get('nombre_usuario'),
+            'email': request.session.get('email')
+        }
+    
+    context = {'categorias': categorias, 'user_data': user_data}
     return render(request, 'core/publicar.html', context)
 
 
@@ -301,6 +351,8 @@ def login_view(request):
     has_session = hasattr(request, 'session')
     if has_session and 'id_usuario' in request.session:
         return redirect('/')
+    
+    user_data = None
     
     if request.method == 'POST':
         email = request.POST.get('email', '').strip().lower()
@@ -313,13 +365,13 @@ def login_view(request):
                 request.session['id_usuario'] = str(user.id)
                 request.session['nombre_usuario'] = user.nombre_usuario
                 request.session['email'] = user.email
-                request.session.save()
+            request.session.save()
             return redirect('/')
         else:
             error = "Correo o contraseña incorrectos"
             return render(request, 'core/login.html', {'error': error})
     
-    return render(request, 'core/login.html')
+    return render(request, 'core/login.html', {'user_data': user_data})
 
 
 def register_view(request):
@@ -395,7 +447,7 @@ def eliminar_articulo(request, id):
         usuario_actual = request.session.get('id_usuario')
     
     if not usuario_actual:
-        return redirect('/login/')
+        return JsonResponse({'error': 'No autenticado'}, status=401)
     
     # Verificar que el artículo pertenece al usuario actual
     try:

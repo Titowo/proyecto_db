@@ -9,99 +9,14 @@
   <a href="{% url 'catalogo' %}">Catálogo</a> / <a href="{% url 'catalogo' %}">{{ p.categoria.nombre }}</a> / {{ p.nombre }}
 </div>
 
-<div class="pdp">
-  <div class="gallery">
-    <img class="main" id="main-img" src="{% if p.fotos %}{{ p.fotos.0.url_imagen }}{% endif %}" alt="{{ p.nombre }}">
-
-    <div class="thumbs">
-      {% for foto in p.fotos %}
-      <img src="{{ foto.url_imagen }}" class="{% if forloop.first %}sel{% endif %}" data-i="{{ forloop.counter0 }}" alt="Foto {{ forloop.counter }}">
-      {% endfor %}
-    </div>
-
-    <div class="slider" id="slider">
-      {% for foto in p.fotos %}
-      <img src="{{ foto.url_imagen }}" alt="Foto {{ forloop.counter }}">
-      {% endfor %}
-    </div>
-
-    <div class="dots" id="dots">
-      {% for foto in p.fotos %}
-      <span class="{% if forloop.first %}on{% endif %}"></span>
-      {% endfor %}
-    </div>
-  </div>
-
-  <div class="buybar">
-    <div class="bb-price">${{ p.precio }}</div>
-    <button class="btn accent" id="add2">Agregar al carrito</button>
-    <a class="btn secondary" href="{% url 'chat' %}?id={{ p.id }}">Negociar</a>
-  </div>
-
-  <div class="pdp-info">
-    <div class="brand">{{ p.marca }}</div>
-    <h1>{{ p.nombre }}</h1>
-    <div class="pdp-price">${{ p.precio }}</div>
-    <span class="tag {% if p.estado_conservacion == 'Nuevo' %}ok{% endif %}">{{ p.estado_conservacion }}</span>
-    <span class="tag">{{ p.stock }} en stock</span>
-
-    <table class="spec-table">
-      <tr><td>Categoría</td><td>{{ p.categoria.nombre }}</td></tr>
-      <tr><td>Talla</td><td>{{ p.talla }}</td></tr>
-      <tr><td>Estado</td><td>{{ p.estado_conservacion }}</td></tr>
-      <tr><td>Stock disponible</td><td>{{ p.stock }} unidad(es)</td></tr>
-    </table>
-    <p style="font-size:14px;line-height:1.5;color:#333">{{ p.descripcion }}</p>
-
-    <div class="qty-row">
-      <b style="font-size:13px;text-transform:uppercase">Cantidad</b>
-      <div class="stepper">
-        <button id="minus">−</button><span id="qty">1</span><button id="plus">+</button>
-      </div>
-    </div>
-
-    <div class="cta-row">
-      <button class="btn accent" id="add">Agregar al carrito</button>
-      <a class="btn secondary" id="chat-link" href="{% url 'chat' %}?id={{ p.id }}">Negociar con el vendedor</a>
-    </div>
-    <div class="cta-row" style="margin-top:10px">
-      <button class="btn secondary" id="fav">♡ Guardar en favoritos</button>
-    </div>
-
-    <div class="seller-box">
-      <div class="avatar">{{ p.vendedor.nombre_usuario|upper }}</div>
-      <div class="grow">
-        <h4>{{ p.vendedor.nombre_usuario }}</h4>
-        <p class="muted" style="font-size:12px;">★ 5.0 · 0 ventas</p>
-      </div>
-      <a class="btn small secondary" href="#">Escribir</a>
-    </div>
-    <button class="link-btn" id="btn-reportar" style="color:var(--danger); margin-top:16px; display:block; width:100%; text-align:center;">⚠ Reportar publicación</button>
-    <div class="notice">Compra entre personas: coordina precio, lugar y hora de entrega por el chat. La venta se confirma en el sistema para descontar el stock.</div>
-  </div>
-</div>
+<div id="content"></div>
 
 <div class="related">
   <h2 class="section-title" style="padding:0">Más de este vendedor y similares</h2>
-  <div class="catalog-grid" id="related">
-    {% for rel in relacionados %}
-    <a class="product-card" href="{% url 'producto' rel.id %}">
-      <button class="fav-btn" data-fav="{{ rel.id }}" title="Favorito">♡</button>
-      <img src="{% if rel.fotos %}{{ rel.fotos.0.url_imagen }}{% endif %}" alt="{{ rel.nombre }}" class="product-image">
-      <div class="product-info">
-        <div class="brand">{{ rel.marca }}</div>
-        <h2 class="product-title">{{ rel.nombre }}</h2>
-        <div class="product-meta"><span>Talla: {{ rel.talla }}</span><span>{{ rel.estado_conservacion }}</span></div>
-        <div class="price">${{ rel.precio }}</div>
-        <div class="seller-line">Vende {{ rel.vendedor.nombre_usuario }}</div>
-      </div>
-    </a>
-    {% empty %}
-    <div class="empty">No hay más artículos relacionados.</div>
-    {% endfor %}
-  </div>
+  <div class="catalog-grid" id="related"></div>
 </div>
 
+<!-- Modal Reportar Publicación -->
 <div class="modal-bg" id="modal-report">
   <div class="modal">
     <h3>Reportar Publicación</h3>
@@ -119,38 +34,248 @@
     </div>
   </div>
 </div>
+
+<!-- Product data -->
+<script id="product-data" type="application/json">
+{
+  "product": {
+    "id": "{{ p.id }}",
+    "brand": "{{ p.marca|escapejs }}",
+    "title": "{{ p.nombre|escapejs }}",
+    "cat": "{{ p.categoria.nombre|escapejs }}",
+    "size": "{{ p.talla|escapejs }}",
+    "sizeGroup": "{% if p.talla == 'US 8 / S' %}S{% elif p.talla == 'US 9 / M' %}M{% elif p.talla == 'US 10 / L' %}L{% else %}Única{% endif %}",
+    "cond": "{{ p.estado_conservacion|escapejs }}",
+    "price": {{ p.precio|default:0 }},
+    "stock": {{ p.stock|default:0 }},
+    "desc": "{{ p.descripcion|escapejs }}",
+    "seller": "{{ p.vendedor.nombre_usuario|default:p.vendedor.username|default:'Vendedor'|escapejs }}",
+    "imgs": [
+      {% for foto in p.fotos %}
+      "{{ foto.url_imagen|escapejs }}"{% if not forloop.last %},{% endif %}
+      {% endfor %}
+    ]
+  },
+  "seller": {
+    "initial": "{{ p.vendedor.nombre_usuario|default:p.vendedor.username|default:'Vendedor'|slice:0:1|upper }}",
+    "rating": "{{ p.vendedor.reputacion|default:'4.9' }}",
+    "sales": {{ p.vendedor.numero_ventas|default:0 }},
+    "zone": "{{ p.vendedor.ubicacion|default:'Santiago' }}",
+    "username": "{{ p.vendedor.nombre_usuario|default:p.vendedor.username|default:'Vendedor'|escapejs }}"
+  }
+}
+</script>
+
+<!-- Related products -->
+<script id="related-data" type="application/json">
+{
+  "related": [
+    {% for rel in relacionados %}
+    {
+      "id": "{{ rel.id }}",
+      "brand": "{{ rel.marca|escapejs }}",
+      "title": "{{ rel.nombre|escapejs }}",
+      "cat": "{{ rel.categoria.nombre|escapejs }}",
+      "size": "{{ rel.talla|escapejs }}",
+      "cond": "{{ rel.estado_conservacion|escapejs }}",
+      "price": {{ rel.precio|default:0 }},
+      "stock": {{ rel.stock|default:0 }},
+      "seller": "{{ rel.vendedor.nombre_usuario|default:rel.vendedor.username|default:'Vendedor'|escapejs }}",
+      "img": "{% if rel.fotos %}{{ rel.fotos.0.url_imagen|escapejs }}{% endif %}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  ]
+}
+</script>
 {% endblock %}
 
 {% block scripts %}
+<script src="{% static 'core/js/data.js' %}"></script>
 <script>
-  document.querySelectorAll('.thumbs img').forEach(function(t) {
-    t.addEventListener('click', function() {
-      document.getElementById('main-img').src = this.src;
-      document.querySelectorAll('.thumbs img').forEach(function(x) { x.classList.remove('sel'); });
-      this.classList.add('sel');
-    });
-  });
+  // Cargar datos desde el script
+  let datos = JSON.parse(document.getElementById('product-data').textContent);
+  const p = datos.product;
+  const s = datos.seller;
+  let qty = 1;
 
-  var slider = document.getElementById('slider');
+  document.title = (p.title || p.name) + ' - C2C Streetwear';
+  document.getElementById('crumb').innerHTML =
+    `<a href="catalogo.html">Catálogo</a> / <a href="catalogo.html">${p.cat}</a> / ${p.title}`;
+
+  document.getElementById('content').innerHTML = `
+  <div class="pdp">
+    <div class="gallery">
+      <img class="main" id="main-img" src="${p.imgs[0]}" alt="${p.title}">
+      <div class="thumbs">${p.imgs.map((u, i) => `<img src="${u}" class="${i === 0 ? 'sel' : ''}" data-i="${i}" alt="Foto ${i + 1}">`).join('')}</div>
+      <div class="slider" id="slider">${p.imgs.map((u, i) => `<img src="${u}" alt="Foto ${i + 1}">`).join('')}</div>
+      <div class="dots" id="dots">${p.imgs.map((_, i) => `<span class="${i === 0 ? 'on' : ''}"></span>`).join('')}</div>
+
+    </div>
+    <div class="buybar">
+        <div class="bb-price">${fmt(p.price)}</div>
+        <button class="btn accent" id="add2">Agregar al carrito</button>
+        <a class="btn secondary" href="chat.html?id=${p.id}">Negociar</a>
+    </div>
+    <div class="pdp-info">
+      <div class="brand">${p.brand}</div>
+      <h1>${p.title}</h1>
+      <div class="pdp-price">${fmt(p.price)}</div>
+      <span class="tag ${p.cond === 'Nuevo' ? 'ok' : ''}">${p.cond}</span>
+      <span class="tag">${p.stock} en stock</span>
+
+      <table class="spec-table">
+        <tr><td>Categoría</td><td>${p.cat}</td></tr>
+        <tr><td>Talla</td><td>${p.size}</td></tr>
+        <tr><td>Estado</td><td>${p.cond}</td></tr>
+        <tr><td>Stock disponible</td><td>${p.stock} unidad(es)</td></tr>
+      </table>
+      <p style="font-size:14px;line-height:1.5;color:#333">${p.desc}</p>
+
+      <div class="qty-row">
+        <b style="font-size:13px;text-transform:uppercase">Cantidad</b>
+        <div class="stepper">
+          <button id="minus">−</button><span id="qty">1</span><button id="plus">+</button>
+        </div>
+      </div>
+
+      <div class="cta-row">
+        <button class="btn accent" id="add">Agregar al carrito</button>
+        <a class="btn secondary" id="chat" href="chat.html?id=${p.id}">Negociar con el vendedor</a>
+      </div>
+      <div class="cta-row" style="margin-top:10px">
+        <button class="btn secondary" id="fav">${Store.isFav(p.id) ? '♥ En favoritos' : '♡ Guardar en favoritos'}</button>
+      </div>
+
+      <div class="seller-box">
+        <div class="avatar">${s.initial}</div>
+        <div class="grow">
+          <h4>${s.username}</h4>
+          <p>★ ${s.rating} · ${s.sales} ventas · ${s.zone}</p>
+        </div>
+        <a class="btn small secondary" href="chat.html?id=${p.id}">Escribir</a>
+      </div>
+      <button class="link-btn" id="btn-reportar" style="color:var(--danger); margin-top:16px; display:block; width:100%; text-align:center;">⚠ Reportar publicación</button>
+      <div class="notice">Compra entre personas: coordina precio, lugar y hora de entrega por el chat. La venta se confirma en el sistema para descontar el stock.</div>
+    </div>
+  </div>`;
+
+  document.querySelectorAll('.thumbs img').forEach(t => t.addEventListener('click', () => {
+    document.getElementById('main-img').src = p.imgs[t.dataset.i];
+    document.querySelectorAll('.thumbs img').forEach(x => x.classList.remove('sel')); t.classList.add('sel');
+  }));
+  
+  const q = document.getElementById('qty');
+  document.getElementById('minus').onclick = () => { qty = Math.max(1, qty - 1); q.textContent = qty; };
+  document.getElementById('plus').onclick = () => { qty = Math.min(p.stock, qty + 1); q.textContent = qty; };
+  
+  const addToCart = () => {
+    if (!window.currentUser) {
+      toast('Inicia sesión para agregar al carrito');
+      return;
+    }
+    Store.addToCart(p.id, qty); 
+    toast('Agregado al carrito de ' + p.seller);
+  };
+  document.getElementById('add').onclick = addToCart;
+  document.getElementById('add2').onclick = addToCart;
+
+  document.getElementById('fav').onclick = (e) => {
+    const on = Store.toggleFav(p.id); 
+    e.target.textContent = on ? '♥ En favoritos' : '♡ Guardar en favoritos';
+  };
+
+  // Lógica del Modal Reportar
+  document.getElementById('btn-reportar').onclick = () => {
+    if (!window.currentUser) {
+      toast('Inicia sesión para reportar');
+      return;
+    }
+    document.getElementById('modal-report').classList.add('open');
+  };
+  document.getElementById('r-cancel').onclick = () => {
+    document.getElementById('modal-report').classList.remove('open');
+    document.getElementById('report-reason').value = '';
+  };
+  document.getElementById('r-ok').onclick = () => {
+    const reason = document.getElementById('report-reason').value;
+    if (!reason) return toast('Debes seleccionar un motivo');
+
+    const details = document.getElementById('report-details').value.trim();
+    fetch('/api/reports/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+      body: JSON.stringify({ articleId: p.id, reason: reason + (details ? ' - Detalles: ' + details : '') })
+    }).then(r => r.json()).then(() => {
+      document.getElementById('modal-report').classList.remove('open');
+      document.getElementById('report-reason').value = '';
+      document.getElementById('report-details').value = '';
+      toast('Reporte enviado a moderación');
+    });
+  };
+
+  // Artículos relacionados
+  const relatedData = JSON.parse(document.getElementById('related-data').textContent);
+  document.getElementById('related').innerHTML = relatedData.related.length ? relatedData.related.map(item => `
+    <a class="product-card" href="producto.html?id=${item.id}">
+      <button class="fav-btn" data-fav="${item.id}" title="Favorito">♡</button>
+      <img src="${item.img}" alt="${item.title}" class="product-image">
+      <div class="product-info">
+        <div class="brand">${item.brand}</div>
+        <h2 class="product-title">${item.title}</h2>
+        <div class="product-meta"><span>Talla: ${item.size}</span><span>${item.cond}</span></div>
+        <div class="price">${fmt(item.price)}</div>
+        <div class="seller-line">Vende ${item.seller}</div>
+      </div>
+    </a>`).join('') : '<div class="empty">No encontramos artículos relacionados.</div>';
+
+  const slider = document.getElementById('slider');
   if(slider) {
-    slider.addEventListener('scroll', function() {
-      var i = Math.round(this.scrollLeft / this.clientWidth);
-      document.querySelectorAll('#dots span').forEach(function(d, k) {
-        d.classList.toggle('on', k === i);
-      });
+    slider.addEventListener('scroll', () => {
+      const i = Math.round(slider.scrollLeft / slider.clientWidth);
+      document.querySelectorAll('#dots span').forEach((d, k) => d.classList.toggle('on', k === i));
     });
   }
 
-  var qSpan = document.getElementById('qty');
-  var currentQty = 1;
-  var maxStock = {{ p.stock|default:1|safe }};
-  
-  var minusBtn = document.getElementById('minus');
-  var plusBtn = document.getElementById('plus');
-  
-  if(minusBtn && plusBtn) {
-    minusBtn.onclick = function() { currentQty = Math.max(1, currentQty - 1); qSpan.textContent = currentQty; };
-    plusBtn.onclick = function() { currentQty = Math.min(maxStock, currentQty + 1); qSpan.textContent = currentQty; };
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
   }
+</script>
+
+<!-- Store class for cart/favorites -->
+<script>
+window.Store = {
+  cart() { return JSON.parse(localStorage.getItem('c2c_cart') || '{"1":1,"4":1,"2":1}'); },
+  favs() { return JSON.parse(localStorage.getItem('c2c_favs') || '[3]'); },
+  setCart(c) { localStorage.setItem('c2c_cart', JSON.stringify(c)); this.updateBadges(); },
+  setFavs(f) { localStorage.setItem('c2c_favs', JSON.stringify(f)); this.updateBadges(); },
+  addToCart(id, qty = 1) {
+    const c = this.cart(); const stock = {{ p.stock|default:1|safe }};
+    c[id] = Math.min((c[id] || 0) + qty, stock); this.setCart(c);
+  },
+  toggleFav(id) {
+    let f = this.favs();
+    f = f.includes(Number(id)) ? f.filter(x => x !== Number(id)) : [...f, Number(id)];
+    this.setFavs(f); return f.includes(Number(id));
+  },
+  isFav(id) { return this.favs().includes(Number(id)); },
+  updateBadges() {
+    const c = document.getElementById('badge-cart'), f = document.getElementById('badge-fav');
+    if (c) { const nc = Object.values(this.cart()).reduce((a, b) => a + b, 0); c.textContent = nc; }
+    if (f) { f.textContent = this.favs().length; }
+    const m = document.getElementById('badge-menu');
+    if (m) { const nc = Object.values(this.cart()).reduce((a, b) => a + b, 0); const nf = this.favs().length; m.textContent = nc + nf; }
+  }
+};
 </script>
 {% endblock %}

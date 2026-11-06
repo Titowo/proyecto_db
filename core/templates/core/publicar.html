@@ -38,7 +38,7 @@
       </div>
       <div>
         <label for="f-price">Precio (CLP)</label>
-        <input id="f-price" type="number" name="precio" min="1" step="1" placeholder="120000" required>
+        <input id="f-price" type="number" name="precio" min="1" step="1000" placeholder="120000" required>
       </div>
       <div>
         <label for="f-stock">Stock</label>
@@ -71,86 +71,191 @@
         </select>
       </div>
 
-      <!-- Sección de Fotos con Preview y selección de Principal -->
       <div class="full">
-        <label>Fotos (máx. 5)</label>
-        <label class="photo-drop" for="f-files">+ Agregar fotos <b id="photo-count">0/5</b></label>
-        <input id="f-files" type="file" accept="image/jpeg,image/png,image/webp" multiple name="fotos" style="display:none;">
-        
-        <!-- Contenedor donde se dibujarán las previsualizaciones -->
-        <div class="photo-grid" id="photos" style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px;"></div>
-        
-        <!-- Campo oculto para enviar cuál índice de foto es la principal -->
-        <input type="hidden" name="index_principal" id="index-principal" value="0">
-        
-        <p class="muted" style="font-size:12px;margin-top:8px">Haz clic en una miniatura para establecerla como foto principal (marcada con borde destacado).</p>
+        <label>Fotos (hasta 10 · JPG, PNG o WebP · máx. 5 MB c/u)</label>
+        <label class="photo-drop" for="f-files">+ Agregar fotos <b id="photo-count">0/10</b></label>
+        <input id="f-files" type="file" accept="image/jpeg,image/png,image/webp" multiple style="display:none;">
+        <div class="photo-grid" id="photos" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px;"></div>
+        <p class="muted" style="font-size:12px;margin-top:8px">Marca cuál será la foto principal: es la que se ve en el catálogo.</p>
       </div>
 
       <div class="full" style="display:flex;gap:10px;justify-content:flex-end">
-        <a class="btn secondary" href="{% url 'catalogo' %}">Cancelar</a>
+        <a class="btn secondary" href="perfil.html#seller">Cancelar</a>
         <button type="submit" class="btn accent">Publicar</button>
       </div>
     </form>
   </div>
 </div>
+
+<!-- Estado del usuario -->
+<script id="user-state" type="application/json">
+{
+  "user": {{ user_data|safe|default:'null' }}
+}
+</script>
 {% endblock %}
 
 {% block scripts %}
+<script src="{% static 'core/js/data.js' %}"></script>
 <script>
-  const fileInput = document.getElementById('f-files');
-  const photosContainer = document.getElementById('photos');
-  const photoCount = document.getElementById('photo-count');
-  const inputPrincipal = document.getElementById('index-principal');
-  
-  let selectedFiles = [];
-  let principalIndex = 0;
+  // Verificar si el usuario está logueado
+  if (!window.currentUser) {
+    alert('Debes iniciar sesión para publicar un artículo');
+    window.location.href = 'login.html';
+  }
 
-  fileInput.addEventListener('change', function(e) {
-    const newFiles = Array.from(e.target.files);
-    
-    // Validar máximo 5 archivos en total
-    if (selectedFiles.length + newFiles.length > 5) {
-      alert("Solo puedes subir un máximo de 5 fotos.");
-      return;
+  const $ = (id) => document.getElementById(id);
+  const MAX_PHOTOS = 10, MAX_BYTES = 5 * 1024 * 1024, TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+  let photos = [];
+  let mainIdx = 0;
+
+  const showError = (list) => {
+    const box = $('form-error');
+    if (!box) return;
+    if (!list) { box.style.display = 'none'; return; }
+    box.innerHTML = list.map(t => '• ' + t).join('<br>');
+    box.style.display = '';
+  };
+
+  // Crear contenedor de errores si no existe
+  if (!document.getElementById('form-error')) {
+    const errorDiv = document.createElement('div');
+    errorDiv.id = 'form-error';
+    errorDiv.className = 'form-error';
+    errorDiv.style.display = 'none';
+    $('f-desc').parentNode.insertBefore(errorDiv, $('f-desc').nextSibling);
+  }
+
+  /* Reduce la foto a 800 px para que quepa en localStorage */
+  function shrink(file) {
+    return new Promise((resolve, reject) => {
+      const fr = new FileReader();
+      fr.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const k = Math.min(1, 800 / Math.max(img.width, img.height));
+          const c = document.createElement('canvas');
+          c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+          const ctx = c.getContext('2d');
+          ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+          ctx.drawImage(img, 0, 0, c.width, c.height);
+          resolve(c.toDataURL('image/jpeg', 0.75));
+        };
+        img.onerror = reject; img.src = fr.result;
+      };
+      fr.onerror = reject; fr.readAsDataURL(file);
+    });
+  }
+
+  function renderPhotos() {
+    $('photos').innerHTML = photos.map((src, i) => `
+      <div class="photo-item ${i === mainIdx ? 'main' : ''}">
+        <img src="${src}" alt="Foto ${i + 1}">
+        <label><input type="radio" name="main" value="${i}" ${i === mainIdx ? 'checked' : ''}> Principal</label>
+        <button type="button" class="link-btn" data-rm="${i}">Quitar</button>
+      </div>`).join('');
+    $('photo-count').textContent = photos.length + '/' + MAX_PHOTOS;
+  }
+
+  $('f-files').addEventListener('change', async (e) => {
+    const errors = [];
+    for (const f of e.target.files) {
+      if (photos.length >= MAX_PHOTOS) { errors.push('Máximo ' + MAX_PHOTOS + ' fotos.'); break; }
+      if (!TYPES.includes(f.type)) { errors.push(f.name + ': formato no permitido (usa JPG, PNG o WebP).'); continue; }
+      if (f.size > MAX_BYTES) { errors.push(f.name + ': supera los 5 MB.'); continue; }
+      try { photos.push(await shrink(f)); } catch (err) { errors.push(f.name + ': no se pudo leer la imagen.'); }
     }
-
-    selectedFiles = selectedFiles.concat(newFiles);
-    renderPreviews();
+    e.target.value = '';
+    showError(errors); renderPhotos();
   });
 
-  function renderPreviews() {
-    photosContainer.innerHTML = '';
-    photoCount.textContent = selectedFiles.length + '/5';
+  $('photos').addEventListener('change', (e) => {
+    if (e.target.name === 'main') {
+      mainIdx = Number(e.target.value);
+      renderPhotos();
+    }
+  });
+  $('photos').addEventListener('click', (e) => {
+    if (e.target.dataset.rm === undefined) return;
+    const i = Number(e.target.dataset.rm);
+    photos.splice(i, 1);
+    if (mainIdx === i) mainIdx = 0; else if (mainIdx > i) mainIdx--;
+    renderPhotos();
+  });
 
-    selectedFiles.forEach((file, index) => {
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const div = document.createElement('div');
-        div.style.position = 'relative';
-        div.style.width = '80px';
-        div.style.height = '80px';
-        div.style.border = index === principalIndex ? '3px solid var(--accent, #111)' : '1px solid #ccc';
-        div.style.borderRadius = '6px';
-        div.style.overflow = 'hidden';
-        div.style.cursor = 'pointer';
-        div.title = "Haz clic para hacer esta la foto principal";
+  $('pub-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const user = window.currentUser;
+    const brand = $('f-brand').value.trim();
+    const title = $('f-title').value.trim();
+    const desc = $('f-desc').value.trim();
+    const price = Number($('f-price').value);
+    const stock = Number($('f-stock').value);
 
-        div.innerHTML = `
-          <img src="${e.target.result}" style="width: 100%; height: 100%; object-fit: cover;">
-          ${index === principalIndex ? '<span style="position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.7); color:#fff; font-size:9px; text-align:center;">Principal</span>' : ''}
-        `;
+    const errors = [];
+    if (!brand) errors.push('La marca es obligatoria.');
+    if (!title) errors.push('El nombre del artículo es obligatorio.');
+    if (!desc) errors.push('La descripción es obligatoria.');
+    if (!(price > 0)) errors.push('El precio debe ser mayor a 0.');
+    if (!Number.isInteger(stock) || stock < 1) errors.push('El stock debe ser un entero mayor o igual a 1.');
+    if (!photos.length) errors.push('Agrega al menos una foto.');
+    if (errors.length) { showError(errors); return; }
+    showError([]);
 
-        // Evento para cambiar la foto principal al hacer clic en la miniatura
-        div.addEventListener('click', () => {
-          principalIndex = index;
-          inputPrincipal.value = principalIndex;
-          renderPreviews();
-        });
+    const opt = $('f-size').selectedOptions[0];
+    const main = photos[mainIdx];
 
-        photosContainer.appendChild(div);
+    // Crear artículo
+    const formData = new FormData();
+    formData.append('nombre', title);
+    formData.append('descripcion', desc);
+    formData.append('precio', price);
+    formData.append('stock', stock);
+    formData.append('talla', opt.textContent);
+    formData.append('marca', brand);
+    formData.append('estado_conservacion', $('f-cond').value);
+    formData.append('categoria', $('f-cat').value);
+
+    // Agregar fotos
+    const photoInputs = document.querySelectorAll('input[type="file"]');
+    for (const input of photoInputs) {
+      const files = input.files;
+      for (let i = 0; i < files.length; i++) {
+        formData.append('fotos', files[i]);
       }
-      reader.readAsDataURL(file);
+    }
+    if (photos.length > 0) {
+      formData.append('index_principal', mainIdx);
+    }
+
+    const response = await fetch({% url 'publicar' %}', {
+      method: 'POST',
+      body: formData,
+      headers: { 'X-CSRFToken': getCookie('csrftoken') }
     });
+    
+    const result = await response.json();
+    if (result.success) {
+      toast('Publicación creada');
+      setTimeout(() => { window.location.href = 'perfil.html'; }, 800);
+    } else {
+      showError([result.error || 'Error al crear la publicación']);
+    }
+  };
+
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
   }
 </script>
 {% endblock %}

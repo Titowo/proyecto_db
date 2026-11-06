@@ -69,13 +69,13 @@
 
   <section>
     <div class="toolbar">
-      <span id="count" class="muted">{{ articulos.count }} artículos encontrados</span>
+      <span id="count" class="muted">{{ articulos.count }} artículos</span>
       <button type="button" class="btn small secondary filters-btn" id="open-filters">☰ Filtros</button>
     </div>
-
     <main class="catalog-grid" id="grid">
       {% for p in articulos %}
       <a class="product-card" href="{% url 'producto' p.id %}">
+        <button class="fav-btn" data-fav="{{ p.id }}" title="Favorito">♡</button>
         <img src="{% if p.fotos %}{{ p.fotos.0.url_imagen }}{% endif %}" alt="{{ p.nombre }}" class="product-image">
         <div class="product-info">
           <div class="brand">{{ p.marca }}</div>
@@ -83,109 +83,139 @@
           <div class="product-meta"><span>Talla: {{ p.talla }}</span><span>{{ p.estado_conservacion }}</span></div>
           <div class="price">${{ p.precio }}</div>
           {% with vendedor=p.vendedor %}
-          <div class="seller-line">Vende {{ vendedor.nombre_usuario|default:vendedor.username|default:"Vendedor" }}</div>
+            <div class="seller-line">Vende {{ vendedor.nombre_usuario|default:vendedor.username|default:"Vendedor" }}</div>
           {% endwith %}
         </div>
       </a>
       {% empty %}
-      <div class="empty" style="grid-column: 1/-1; text-align: center; padding: 40px;">
-        <h3>No encontramos artículos con esos filtros.</h3>
-      </div>
-    {% endfor %}
+      <div class="empty">No encontramos artículos con esos filtros.</div>
+      {% endfor %}
     </main>
   </section>
 </div>
+
+<!-- Productos para filtrado en JavaScript -->
+<script id="products-data" type="application/json">
+{
+  "products": [
+    {% for p in articulos %}
+    {
+      "id": "{{ p.id }}",
+      "brand": "{{ p.marca|escapejs }}",
+      "title": "{{ p.nombre|escapejs }}",
+      "cat": "{{ p.categoria.nombre|escapejs }}",
+      "size": "{{ p.talla|escapejs }}",
+      "sizeGroup": "{% if p.talla == 'US 8 / S' %}S{% elif p.talla == 'US 9 / M' %}M{% elif p.talla == 'US 10 / L' %}L{% else %}Única{% endif %}",
+      "cond": "{{ p.estado_conservacion|escapejs }}",
+      "price": {{ p.precio|default:0 }},
+      "stock": {{ p.stock|default:0 }},
+      "seller": "{{ p.vendedor.nombre_usuario|default:p.vendedor.username|default:'Vendedor'|escapejs }}",
+      "imgs": [
+        {% for foto in p.fotos %}
+        "{{ foto.url_imagen|escapejs }}"{% if not forloop.last %},{% endif %}
+        {% endfor %}
+      ]
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  ]
+}
+</script>
 {% endblock %}
 
 {% block scripts %}
+<script src="{% static 'core/js/data.js' %}"></script>
 <script>
-  var sidebar = document.getElementById('sidebar');
-  document.getElementById('open-filters').onclick = function() { sidebar.classList.add('open'); document.body.style.overflow = 'hidden'; };
-  document.getElementById('close-filters').onclick = function() { sidebar.classList.remove('open'); document.body.style.overflow = ''; };
-  window.addEventListener('resize', function() { if (innerWidth > 900) { sidebar.classList.remove('open'); document.body.style.overflow = ''; } });
+  const $ = (id) => document.getElementById(id);
+  const q = (new URLSearchParams(location.search).get('q') || '').toLowerCase();
+  if (q) document.querySelector('.search-bar input').value = q;
 
-  var maxR = document.getElementById('range-max');
-  var maxI = document.getElementById('input-max');
-  var bar = document.getElementById('range-color');
-  var MAX = 250000;
+  const minR = $('range-min'), maxR = $('range-max'), minI = $('input-min'), maxI = $('input-max'), bar = $('range-color');
+  const MAX = 250000;
 
-  function fromInput() {
-    maxR.value = Math.max(maxI.value || 0, 0);
-    maxR.value = Math.min(maxI.value || MAX, MAX);
-    syncBar();
-  }
   function syncBar() {
+    bar.style.left = (minR.value / MAX * 100) + '%';
     bar.style.right = (100 - maxR.value / MAX * 100) + '%';
   }
-  maxR.addEventListener('input', fromInput);
+  function fromRange(changed) {
+    if (+minR.value > +maxR.value) { if (changed === 'min') minR.value = maxR.value; else maxR.value = minR.value; }
+    minI.value = minR.value; maxI.value = maxR.value; syncBar();
+  }
+  function fromInput() {
+    minR.value = Math.min(+minI.value || 0, +maxI.value || MAX);
+    maxR.value = Math.max(+maxI.value || 0, +minI.value || 0);
+    syncBar();
+  }
+  minR.addEventListener('input', () => fromRange('min'));
+  maxR.addEventListener('input', () => fromRange('max'));
+  minI.addEventListener('change', fromInput);
   maxI.addEventListener('change', fromInput);
 
-  document.getElementById('apply').onclick = function() {
-    var cats = [].slice.call(document.querySelectorAll('#f-cat input[type="checkbox"]:checked')).map(function(i) { return i.value; });
-    var cond = document.querySelector('input[name="estado"]:checked').value;
-    var max = maxI.value || MAX;
+  function checked(sel) { return [...document.querySelectorAll(sel + ' input:checked')].map(i => i.value); }
+
+  // Cargar productos desde el script
+  let PRODUCTS = [];
+  let SELLERS = {};
+  try {
+    const data = JSON.parse(document.getElementById('products-data').textContent);
+    PRODUCTS = data.products;
+    // Construir SELLERS únicos
+    PRODUCTS.forEach(p => {
+      if (!SELLERS[p.seller]) {
+        SELLERS[p.seller] = {
+          initial: p.seller.replace('@', '')[0].toUpperCase(),
+          rating: '4.9',
+          sales: 0,
+          zone: 'Santiago'
+        };
+      }
+    });
+  } catch(e) { console.error('Error parsing products:', e); }
+
+  function render() {
+    const cats = checked('#f-cat');
+    const sizes = checked('#f-size');
+    const brands = checked('#f-brand');
+    const cond = document.querySelector('input[name=estado]:checked').value;
+    const lo = +minR.value, hi = +maxR.value;
 
     if (cats.length === 0) {
-      document.getElementById('count').textContent = '0 artículos';
-      document.getElementById('grid').innerHTML = '<div class="empty" style="color: var(--danger); border-color: var(--danger);">⚠ Selecciona al menos una Categoría (Filtro Obligatorio) para ver los resultados.</div>';
-      return;
+      $('count').textContent = '0 artículos';
+      $('grid').innerHTML = '<div class="empty" style="color: var(--danger); border-color: var(--danger);">⚠ Selecciona al menos una Categoría (Filtro Obligatorio) para ver los resultados.</div>';
+      return; 
     }
 
-    var form = document.createElement('form');
-    form.method = 'GET';
-    form.action = window.location.href.split('?')[0];
-    document.querySelectorAll('#f-cat input[type="checkbox"]').forEach(function(cb) {
-      var inp = document.createElement('input');
-      inp.type = 'hidden';
-      inp.name = 'categoria';
-      inp.value = cb.value;
-      if (cb.checked) form.appendChild(inp);
-    });
-    document.querySelectorAll('#f-size input[type="checkbox"]').forEach(function(cb) {
-      if (cb.checked) {
-        var inp = document.createElement('input');
-        inp.type = 'hidden';
-        inp.name = 'talla';
-        inp.value = cb.value;
-        form.appendChild(inp);
-      }
-    });
-    document.querySelectorAll('#f-brand input[type="checkbox"]').forEach(function(cb) {
-      if (cb.checked) {
-        var inp = document.createElement('input');
-        inp.type = 'hidden';
-        inp.name = 'marca';
-        inp.value = cb.value;
-        form.appendChild(inp);
-      }
-    });
-    var condInp = document.querySelector('input[name="estado"]:checked');
-    if (condInp && condInp.value) {
-      var inp = document.createElement('input');
-      inp.type = 'hidden';
-      inp.name = 'estado_conservacion';
-      inp.value = cond;
-      form.appendChild(inp);
-    }
-    var maxInp = document.createElement('input');
-    maxInp.type = 'hidden';
-    maxInp.name = 'precio_max';
-    maxInp.value = max;
-    form.appendChild(maxInp);
+    let list = PRODUCTS.filter(p =>
+      p.price >= lo && p.price <= hi &&
+      cats.includes(p.cat) &&
+      (!sizes.length || sizes.includes(p.sizeGroup)) &&
+      (!brands.length || brands.includes(p.brand)) &&
+      (!cond || p.cond === cond) &&
+      (!q || (p.title + ' ' + p.brand + ' ' + p.cat).toLowerCase().includes(q))
+    );
+    
+    const s = $('sort').value;
+    if (s) list.sort((a, b) => s === 'asc' ? a.price - b.price : b.price - a.price);
+    
+    $('count').textContent = list.length + (list.length === 1 ? ' artículo' : ' artículos');
+    $('grid').innerHTML = list.length ? list.map(productCard).join('') : '<div class="empty">No encontramos artículos con esos filtros.</div>';
+  }
 
-    document.body.appendChild(form);
-    form.submit();
-  };
+  const sheet = document.querySelector('.sidebar');
+  const openSheet = () => { sheet.classList.add('open'); document.body.style.overflow = 'hidden'; };
+  const closeSheet = () => { sheet.classList.remove('open'); document.body.style.overflow = ''; };
+  $('open-filters').addEventListener('click', openSheet);
+  $('close-filters').addEventListener('click', closeSheet);
+  $('apply').addEventListener('click', () => { render(); closeSheet(); });
+  window.addEventListener('resize', () => { if (innerWidth > 900) closeSheet(); });
 
-  document.getElementById('clear').onclick = function() {
-    document.querySelectorAll('.sidebar input[type="checkbox"]').forEach(function(c) { c.checked = false; });
-    document.querySelector('input[name="estado"][value=""]').checked = true;
-    document.querySelectorAll('#f-cat input[type="checkbox"]').forEach(function(c) { c.checked = true; });
-    document.getElementById('input-max').value = 250000;
-    document.getElementById('range-max').value = 250000;
-    syncBar();
-  };
+  $('sort').addEventListener('change', render);
+  $('clear').addEventListener('click', () => {
+    document.querySelectorAll('.sidebar input[type=checkbox]').forEach(c => c.checked = false);
+    document.querySelector('input[name=estado][value=""]').checked = true;
+    document.querySelectorAll('#f-cat input[type=checkbox]').forEach(c => c.checked = true);
+    minR.value = 0; maxR.value = MAX; fromRange(); render();
+  });
 
-  syncBar();
+  syncBar(); render();
 </script>
 {% endblock %}

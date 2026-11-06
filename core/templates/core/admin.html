@@ -9,10 +9,10 @@
   <h1>Reportes <span class="tag dark" style="vertical-align:middle">Admin</span></h1>
 
   <div class="stats" id="stats">
-    <div class="stat"><b>{{ pendientes|default:0 }}</b><span>Pendientes</span></div>
-    <div class="stat"><b>{{ revisados|default:0 }}</b><span>Revisados</span></div>
-    <div class="stat"><b>{{ descartados|default:0 }}</b><span>Descartados</span></div>
-    <div class="stat"><b>{{ total|default:0 }}</b><span>Total</span></div>
+    <div class="stat"><b>{{ pendientes }}</b><span>Pendientes</span></div>
+    <div class="stat"><b>{{ revisados }}</b><span>Revisados</span></div>
+    <div class="stat"><b>{{ descartados }}</b><span>Descartados</span></div>
+    <div class="stat"><b>{{ total }}</b><span>Total</span></div>
   </div>
 
   <div class="tabs" id="filters">
@@ -38,7 +38,7 @@
               </a>
               <div class="sub">{{ r.articulo.vendedor.nombre_usuario|default:r.articulo.vendedor.username }}</div>
             </td>
-            <td>{{ r.denunciante.nombre_usuario|default:r.denunciante.username }}</td>
+            <td>{{ r.denunciante.nombre_usuario|default:r.denunciante.username|default:'Anónimo' }}</td>
             <td class="reason">{{ r.motivo }}{% if r.detalles %} - Detalles: {{ r.detalles }}{% endif %}</td>
             <td>
               <span class="tag {% if r.estado == 'Revisado' %}ok{% elif r.estado == 'Pendiente' %}warn{% endif %}">
@@ -60,7 +60,7 @@
             </td>
           </tr>
           {% empty %}
-          <tr><td colspan="6" class="empty-cell">No hay reportes {{ filtro|default:"todos" }}.</td></tr>
+          <tr><td colspan="6" class="empty-cell">No hay reportes.</td></tr>
           {% endfor %}
         </tbody>
       </table>

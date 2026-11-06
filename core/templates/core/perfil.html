@@ -12,9 +12,11 @@
     <div class="grow">
       <h1 id="h-name">{{ user.nombre1|default:"Usuario" }} {{ user.apellido1|default:"" }}</h1>
       <div class="handle" id="h-handle">{{ user.nombre_usuario|default:"@usuario" }}</div>
+      <p class="bio" id="h-bio">{{ user.biografia|default:'' }}</p>
+      <p class="muted" style="font-size:12px;margin-top:8px" id="h-meta">📍 {{ user.ubicacion|default:'Santiago' }} · Entrega en: {{ user.punto_entrega|default:'—' }} · Contacto: {{ user.contacto|default:'Solo chat de la plataforma' }}</p>
     </div>
     <button class="btn secondary" id="btn-edit">Editar perfil</button>
-    <button class="btn" id="btn-logout" style="margin-left: 10px; background: var(--danger); color: white; border: none;" onclick="window.location.href='/logout/';">Cerrar Sesion</button>
+    <button class="btn" id="btn-logout" style="margin-left: 10px; background: var(--danger); color: white; border: none;">Cerrar Sesion</button>
   </div>
 
   <!-- Selector de vista -->
@@ -23,63 +25,261 @@
       <button class="tab active" id="v-buyer">Vista Comprador</button>
       <button class="tab" id="v-seller">Vista Vendedor</button>
     </div>
+    <span class="muted" style="font-size:12px">Una misma cuenta puede comprar y vender.</span>
+  </div>
+
+  <!-- Edición -->
+  <div class="panel" id="edit-panel" style="display:none">
+    <h3>Editar mis datos</h3>
+    <form class="body form-grid" id="edit-form">
+      <div><label>Primer nombre</label><input id="e-n1" name="nombre1" value="{{ user.nombre1|default:'' }}" required></div>
+      <div><label>Segundo nombre</label><input id="e-n2" name="nombre2" value="{{ user.nombre2|default:'' }}"></div>
+      <div><label>Primer apellido</label><input id="e-a1" name="apellido1" value="{{ user.apellido1|default:'' }}" required></div>
+      <div><label>Segundo apellido</label><input id="e-a2" name="apellido2" value="{{ user.apellido2|default:'' }}"></div>
+      <div><label>Usuario</label><input id="e-handle" name="nombre_usuario" value="{{ user.nombre_usuario|default:'' }}" required></div>
+      <div class="full"><label>Correo Electrónico</label><input type="email" id="e-email" name="email" value="{{ user.email|default:'' }}" required></div>
+      <div><label>Comuna / zona</label><input id="e-zone" name="ubicacion" value="{{ user.ubicacion|default:'' }}"></div>
+      <div><label>Contacto preferido</label>
+        <select id="e-contact" name="contacto">
+          <option value="Solo chat de la plataforma" {% if user.contacto == 'Solo chat de la plataforma' or not user.contacto %}selected{% endif %}>Solo chat de la plataforma</option>
+          <option value="WhatsApp" {% if user.contacto == 'WhatsApp' %}selected{% endif %}>WhatsApp</option>
+          <option value="Instagram" {% if user.contacto == 'Instagram' %}selected{% endif %}>Instagram</option>
+        </select>
+      </div>
+      <div class="full"><label>Punto de entrega habitual</label><input id="e-meet" name="punto_entrega" placeholder="Ej: Metro Baquedano" value="{{ user.punto_entrega|default:'' }}"></div>
+      <div class="full"><label>Biografía</label><textarea id="e-bio" name="biografia">{{ user.biografia|default:'' }}</textarea></div>
+      <div class="full" style="display:flex;gap:10px;justify-content:flex-end">
+        <button type="button" class="btn secondary" id="e-cancel">Cancelar</button>
+        <button type="submit" class="btn accent">Guardar cambios</button>
+      </div>
+    </form>
   </div>
 
   <!-- Vista comprador -->
   <section id="buyer-view">
-    <div class="stats">
-      <div class="stat"><b>{{ compras_count|default:0 }}</b><span>Compras</span></div>
-      <div class="stat"><b>{{ favoritos_count|default:0 }}</b><span>Favoritos</span></div>
-      <div class="stat"><b>{{ carritos_count|default:0 }}</b><span>Carritos activos</span></div>
-      <div class="stat"><b>4.8 ★</b><span>Reputación</span></div>
-    </div>
-    <div class="panel">
-      <h3>Mis compras</h3>
-      <div class="body muted">Aún no tienes compras.</div>
+    <div class="stats" id="b-stats"></div>
+    <div class="two-col">
+      <div class="panel">
+        <h3>Mis compras <a class="link-btn" href="chat.html">Ir a mis chats</a></h3>
+        <div id="b-orders"></div>
+      </div>
+      <div>
+        <div class="panel">
+          <h3>Favoritos <a class="link-btn" href="carrito.html#favoritos">Ver todos</a></h3>
+          <div id="b-favs"></div>
+        </div>
+        <div class="panel">
+          <h3>Carritos activos <a class="link-btn" href="carrito.html">Ir al carrito</a></h3>
+          <div id="b-carts"></div>
+        </div>
+      </div>
     </div>
   </section>
 
   <!-- Vista vendedor -->
   <section id="seller-view" style="display:none">
-    <div class="stats">
-      <div class="stat"><b>{{ publicaciones|length|default:0 }}</b><span>Publicaciones activas</span></div>
-      <div class="stat"><b>{{ publicaciones|length|default:0 }}</b><span>Unidades en stock</span></div>
-      <div class="stat"><b>0</b><span>Ventas totales</span></div>
-      <div class="stat"><b>$0</b><span>Total vendido</span></div>
-      <div class="stat"><b>5.0 ★</b><span>Valoración</span></div>
-    </div>
+    <div class="stats" id="s-stats"></div>
     <div class="panel">
-      <h3>Mis publicaciones <a class="btn small accent" href="{% url 'publicar' %}">+ Nueva publicación</a></h3>
-      {% if publicaciones %}
-        {% for art in publicaciones %}
-        <div class="list-row" style="grid-template-columns:64px 1fr auto" data-id="{{ art.id }}">
-          <a href="{% url 'producto' art.id %}">
-            <img src="{% if art.fotos %}{{ art.fotos.0.url_imagen }}{% endif %}" alt="">
-          </a>
-          <div>
-            <h4>{{ art.marca }} {{ art.nombre }}</h4>
-            <div class="sub">Talla {{ art.talla }} · {{ art.estado_conservacion }}</div>
-            <div class="sub" style="margin-top:6px">
-              Precio ${{ art.precio }} · Stock {{ art.stock }}
-            </div>
-          </div>
-          <div class="end">
-            <span class="tag {% if art.estado_publicacion == 'Activo' %}ok{% endif %}">{{ art.estado_publicacion }}</span>
-            <br>
-            <button class="link-btn btn-delete" data-id="{{ art.id }}" style="margin-top:8px; color: var(--danger);">Eliminar</button>
-          </div>
-        </div>
-        {% endfor %}
-      {% else %}
-        <div class="body muted">No tienes publicaciones. <a href="{% url 'publicar' %}" style="text-decoration:underline;font-weight:bold">Crea la primera</a>.</div>
-      {% endif %}
+      <h3>Mis publicaciones <a class="btn small accent" href="publicar.html">+ Nueva publicación</a></h3>
+      <div id="s-list"></div>
+    </div>
+    </div>
+    <div class="two-col">
+      <div class="panel">
+        <h3>Ventas recientes <a class="link-btn" href="chat.html">Ir a mis chats</a></h3>
+        <div id="s-sales"></div>
+      </div>
+      <div class="panel">
+        <h3>Valoraciones recibidas</h3>
+        <div id="s-reviews"></div>
+      </div>
     </div>
   </section>
 </div>
+
+<!-- Datos de usuario para JS -->
+<script id="user-profile-data" type="application/json">
+{
+  "user": {
+    "nombre1": "{{ user.nombre1|default:''|escapejs }}",
+    "nombre2": "{{ user.nombre2|default:''|escapejs }}",
+    "apellido1": "{{ user.apellido1|default:''|escapejs }}",
+    "apellido2": "{{ user.apellido2|default:''|escapejs }}",
+    "handle": "{{ user.nombre_usuario|default:''|escapejs }}",
+    "email": "{{ user.email|default:''|escapejs }}",
+    "zone": "{{ user.ubicacion|default:''|escapejs }}",
+    "contact": "{{ user.contacto|default:'Solo chat de la plataforma'|escapejs }}",
+    "meet": "{{ user.punto_entrega|default:''|escapejs }}",
+    "bio": "{{ user.biografia|default:''|escapejs }}",
+    "sales": {{ user.numero_ventas|default:0 }},
+    "rating": "{{ user.reputacion|default:'5.0'|escapejs }}"
+  },
+  "publicaciones": [
+    {% for art in publicaciones %}
+    {
+      "id": "{{ art.id }}",
+      "brand": "{{ art.marca|escapejs }}",
+      "title": "{{ art.nombre|escapejs }}",
+      "size": "{{ art.talla|escapejs }}",
+      "cond": "{{ art.estado_conservacion|escapejs }}",
+      "price": {{ art.precio|default:0 }},
+      "stock": {{ art.stock|default:0 }},
+      "estado": "{{ art.estado_publicacion|default:'Activo'|escapejs }}",
+      "img": "{% if art.fotos %}{{ art.fotos.0.url_imagen|escapejs }}{% endif %}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  ],
+  "ventas": [
+    {% for v in ventas_recientes %}
+    {
+      "productId": "{{ v.producto.id }}",
+      "buyer": "{{ v.comprador.nombre_usuario|escapejs }}",
+      "qty": {{ v.cantidad|default:1 }},
+      "unit": {{ v.precio_unitario|default:0 }},
+      "date": "{{ v.fecha_compra|date:'d-m-Y'|escapejs }}",
+      "state": "{{ v.estado|default:'Entregada'|escapejs }}",
+      "product": {
+        "brand": "{{ v.producto.marca|escapejs }}",
+        "title": "{{ v.producto.nombre|escapejs }}",
+        "img": "{% if v.producto.fotos %}{{ v.producto.fotos.0.url_imagen|escapejs }}{% endif %}"
+      }
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  ]
+}
+</script>
+
+<!-- Valoraciones semilla (para demo) -->
+<script id="reviews-data" type="application/json">
+{
+  "reviews": [
+    {% if user.email == 'test@c2c.cl' %}
+    { "who": "@JuanComprador", "stars": 5, "text": "Todo perfecto, zapatillas tal cual las fotos y súper puntual en la entrega." },
+    { "who": "@MatiStreet", "stars": 5, "text": "Muy buena onda, respondió rápido y respetó el precio." },
+    { "who": "@NachoKicks", "stars": 4, "text": "Buen vendedor, solo se demoró un poco en coordinar." }
+    {% else %}
+    {% for r in valoraciones %}
+    { "who": "{{ r.revisor.nombre_usuario|escapejs }}", "stars": {{ r.puntuacion|default:5 }}, "text": "{{ r.comentario|escapejs|default:'' }}" }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+    {% endif %}
+  ]
+}
+</script>
 {% endblock %}
 
 {% block scripts %}
+<script src="{% static 'core/js/data.js' %}"></script>
 <script>
+  // Cargar datos desde los scripts
+  const profileData = JSON.parse(document.getElementById('user-profile-data').textContent);
+  const reviewsData = JSON.parse(document.getElementById('reviews-data').textContent);
+  
+  const prof = profileData.user;
+  const publicaciones = profileData.publicaciones || [];
+  const ventas = profileData.ventas || [];
+  const reviews = reviewsData.reviews || [];
+  
+  const IS_DEMO = !window.currentUser || window.currentUser.email === 'test@c2c.cl';
+  const HANDLE = window.currentUser ? window.currentUser.nombre_usuario : prof.handle;
+
+  const esc = (s) => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const stars = (n) => '★'.repeat(n) + '☆'.repeat(5 - n);
+
+  function fullName(u) {
+    return [u.nombre1, u.nombre2, u.apellido1, u.apellido2].filter(Boolean).join(' ') || u.handle || "";
+  }
+
+  function renderHero() {
+    document.getElementById('h-avatar').textContent = (prof.nombre1 || '?')[0].toUpperCase();
+    document.getElementById('h-name').textContent = fullName(prof);
+    document.getElementById('h-handle').textContent = prof.handle;
+    document.getElementById('h-bio').textContent = prof.bio;
+    document.getElementById('h-meta').textContent = `📍 ${prof.zone} · Entrega en: ${prof.meet || '—'} · Contacto: ${prof.contact}`;
+  }
+
+  function renderBuyer() {
+    const favs = JSON.parse(localStorage.getItem('c2c_favs') || '[]').map(id => publicaciones.find(p => String(p.id) === String(id))).filter(Boolean);
+    const carts = JSON.parse(localStorage.getItem('c2c_cart') || '{}');
+    const bySeller = {};
+    let cartCount = 0;
+    Object.entries(carts).forEach(([id, q]) => {
+      const p = publicaciones.find(p => String(p.id) === String(id));
+      if (p) {
+        (bySeller[p.brand] = bySeller[p.brand] || []).push({ p, qty: q });
+        cartCount += Number(q);
+      }
+    });
+
+    document.getElementById('b-stats').innerHTML = [
+      [ventas.length, 'Compras'],
+      [favs.length, 'Favoritos'],
+      [Object.keys(bySeller).length, 'Carritos activos'],
+      ['4.8 ★', 'Reputación como comprador']
+    ].map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join('');
+
+    document.getElementById('b-orders').innerHTML = ventas.length ? ventas.map(o => {
+      return `<div class="list-row"><img src="${o.product.img}" alt=""><div><h4>${o.product.brand} ${o.product.title}</h4><div class="sub">${o.product.seller || 'Vendedor'} · ${o.date}</div></div>
+        <div class="end"><div class="price">${fmt(o.qty * o.unit)}</div><span class="tag ok">${o.state}</span></div></div>`;
+    }).join('') : '<div class="body muted">Aún no tienes compras.</div>';
+
+    document.getElementById('b-favs').innerHTML = favs.length ? favs.map(p => `
+      <div class="list-row"><img src="${p.img}" alt=""><div><h4><a href="producto.html?id=${p.id}">${p.title}</a></h4><div class="sub">${p.seller || 'Vendedor'}</div></div><div class="end price">${fmt(p.price)}</div></div>`).join('')
+      : '<div class="body muted">Sin favoritos aún.</div>';
+
+    const keys = Object.keys(bySeller);
+    document.getElementById('b-carts').innerHTML = keys.length ? keys.map(s => `
+      <div class="list-row" style="grid-template-columns:44px 1fr auto"><div class="avatar" style="width:40px;height:40px;font-size:15px">${s[0].toUpperCase()}</div>
+      <div><h4>${s}</h4><div class="sub">${bySeller[s].length} producto(s)</div></div><div class="end price">${fmt(bySeller[s].reduce((a, r) => a + r.p.price * r.qty, 0))}</div></div>`).join('')
+      : '<div class="body muted">No tienes carritos activos.</div>';
+  }
+
+  function mySales() {
+    return ventas.slice();
+  }
+
+  function myReviews() {
+    const mine = reviews.filter(r => r.who === window.currentUser?.username);
+    return [...mine, ...reviews];
+  }
+
+  function renderSeller() {
+    const items = publicaciones;
+    const sales = mySales(), revs = myReviews();
+    const total = sales.reduce((a, s) => a + s.qty * s.unit, 0);
+    const rating = IS_DEMO ? '4.9' : (revs.length ? (revs.reduce((a, r) => a + r.stars, 0) / revs.length).toFixed(1) : '—');
+
+    document.getElementById('s-stats').innerHTML = [
+      [items.filter(p => p.stock > 0).length, 'Publicaciones activas'],
+      [items.reduce((a, p) => a + p.stock, 0), 'Unidades en stock'],
+      [sales.length + (IS_DEMO ? 35 : 0), 'Ventas totales'],
+      [fmt(total), 'Total vendido'],
+      [rating === '—' ? '—' : rating + ' ★', 'Valoración']
+    ].map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join('');
+
+    document.getElementById('s-list').innerHTML = items.length ? items.map(p => `
+      <div class="list-row" style="grid-template-columns:64px 1fr auto">
+        <a href="producto.html?id=${p.id}"><img src="${p.img}" alt=""></a>
+        <div><h4>${esc(p.brand)} ${esc(p.title)}</h4><div class="sub">Talla ${esc(p.size)} · ${p.cond}</div>
+          <div class="sub" style="margin-top:6px"><label>Precio <input class="inline-in" type="number" step="1000" value="${p.price}" data-price="${p.id}" style="width:100px"></label>
+          &nbsp;<label>Stock <input class="inline-in" type="number" min="0" value="${p.stock}" data-stock="${p.id}" style="width:60px"></label></div></div>
+        <div class="end"><span class="tag ${p.stock > 0 ? 'ok' : ''}">${p.stock > 0 ? 'Activa' : 'Agotada'}</span><br>
+          <button class="link-btn" data-del="${p.id}" style="margin-top:8px">Eliminar</button></div>
+      </div>`).join('')
+      : '<div class="body muted">No tienes publicaciones. <a href="publicar.html" style="text-decoration:underline;font-weight:bold">Crea la primera</a>.</div>';
+
+    document.getElementById('s-sales').innerHTML = sales.length ? sales.map(s => {
+      const prod = publicaciones.find(p => p.id === s.productId);
+      if (!prod) return '';
+      return `<div class="list-row"><img src="${prod.img}" alt=""><div><h4>${esc(prod.brand)} ${esc(prod.title)}</h4><div class="sub">${esc(s.buyer) || 'Comprador'} · ${s.date}</div></div>
+        <div class="end"><div class="price">${fmt(s.qty * s.unit)}</div><div class="sub">${s.qty} × ${fmt(s.unit)}</div>
+        <span class="tag ok">${s.state}</span></div></div>`;
+    }).join('') : '<div class="body muted">Aún no registras ventas.</div>';
+
+    document.getElementById('s-reviews').innerHTML = revs.length ? revs.map(r =>
+      `<div class="review"><div class="who">${esc(r.who)} · <span class="stars">${stars(r.stars)}</span></div>${esc(r.text)}</div>`).join('')
+      : '<div class="body muted">Aún no tienes valoraciones.</div>';
+  }
+
   function setView(v) {
     document.getElementById('buyer-view').style.display = v === 'buyer' ? '' : 'none';
     document.getElementById('seller-view').style.display = v === 'seller' ? '' : 'none';
@@ -87,43 +287,87 @@
     document.getElementById('v-seller').classList.toggle('active', v === 'seller');
     history.replaceState(null, '', '#' + v);
   }
-  document.getElementById('v-buyer').onclick = function() { setView('buyer'); };
-  document.getElementById('v-seller').onclick = function() { setView('seller'); };
+  document.getElementById('v-buyer').onclick = () => setView('buyer');
+  document.getElementById('v-seller').onclick = () => setView('seller');
 
-  document.getElementById('btn-edit').onclick = function() {
-    alert('Edición de perfil no implementada en esta versión.');
+  document.getElementById('btn-edit').onclick = () => {
+    document.getElementById('e-n1').value = prof.nombre1;
+    document.getElementById('e-n2').value = prof.nombre2;
+    document.getElementById('e-a1').value = prof.apellido1;
+    document.getElementById('e-a2').value = prof.apellido2;
+    document.getElementById('e-handle').value = prof.handle;
+    document.getElementById('e-email').value = prof.email;
+    document.getElementById('e-zone').value = prof.zone;
+    document.getElementById('e-contact').value = prof.contact;
+    document.getElementById('e-meet').value = prof.meet;
+    document.getElementById('e-bio').value = prof.bio;
+    document.getElementById('edit-panel').style.display = '';
+    document.getElementById('edit-panel').scrollIntoView({ behavior: 'smooth' });
+  };
+  document.getElementById('e-cancel').onclick = () => document.getElementById('edit-panel').style.display = 'none';
+  
+  document.getElementById('edit-form').onsubmit = (e) => {
+    e.preventDefault();
+    let h = document.getElementById('e-handle').value.trim();
+    if (!h.startsWith('@')) h = '@' + h;
+    
+    const updated = {
+      nombre1: document.getElementById('e-n1').value.trim(),
+      nombre2: document.getElementById('e-n2').value.trim(),
+      apellido1: document.getElementById('e-a1').value.trim(),
+      apellido2: document.getElementById('e-a2').value.trim(),
+      nombre_usuario: h,
+      email: document.getElementById('e-email').value.trim(),
+      ubicacion: document.getElementById('e-zone').value.trim(),
+      contacto: document.getElementById('e-contact').value,
+      punto_entrega: document.getElementById('e-meet').value.trim(),
+      biografia: document.getElementById('e-bio').value.trim()
+    };
+    
+    // Actualizar en el DOM
+    Object.assign(prof, updated);
+    renderHero();
+    renderSeller();
+    document.getElementById('edit-panel').style.display = 'none';
+    toast('Perfil actualizado');
   };
 
-  // Eliminar artículo
-  document.querySelectorAll('.btn-delete').forEach(btn => {
-    btn.addEventListener('click', function(e) {
-      e.preventDefault();
-      const id = this.dataset.id;
-      const row = this.closest('.list-row');
-      
-      if (confirm('¿Estás seguro de que quieres eliminar esta publicación?')) {
+  document.addEventListener('change', (e) => {
+    const t = e.target;
+    if (t.dataset.price) {
+      const p = publicaciones.find(p => String(p.id) === String(t.dataset.price));
+      if (p) { p.price = +t.value; toast('Precio actualizado'); }
+    }
+    if (t.dataset.stock) {
+      const p = publicaciones.find(p => String(p.id) === String(t.dataset.stock));
+      if (p) { p.stock = Math.max(0, +t.value); renderSeller(); toast('Stock actualizado'); }
+    }
+  });
+  
+  document.addEventListener('click', (e) => {
+    if (e.target.dataset.del) {
+      const id = e.target.dataset.del;
+      const row = e.target.closest('.list-row');
+      if (confirm('¿Estás seguro de eliminar esta publicación?')) {
         fetch(`/Eliminar articulo/${id}/`, {
           method: 'POST',
-          headers: {
-            'X-CSRFToken': getCookie('csrftoken'),
-            'Content-Type': 'application/json'
-          }
+          headers: { 'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': 'application/json' }
         })
-        .then(response => response.json())
+        .then(r => r.json())
         .then(data => {
           if (data.success) {
             row.remove();
-            alert('Artículo eliminado correctamente');
+            const idx = publicaciones.findIndex(p => String(p.id) === String(id));
+            if (idx > -1) publicaciones.splice(idx, 1);
+            renderSeller();
+            toast('Publicación eliminada');
           } else {
-            alert('Error: ' + (data.error || 'No se pudo eliminar'));
+            toast('Error: ' + (data.error || 'No se pudo eliminar'));
           }
         })
-        .catch(error => {
-          console.error('Error:', error);
-          alert('Error al eliminar el artículo');
-        });
+        .catch(() => toast('Error al eliminar'));
       }
-    });
+    }
   });
 
   function getCookie(name) {
@@ -140,5 +384,13 @@
     }
     return cookieValue;
   }
+  
+  document.getElementById('btn-logout').onclick = () => {
+    fetch('/logout/', { method: 'POST', headers: { 'X-CSRFToken': getCookie('csrftoken') } })
+      .then(() => window.location.href = 'catalogo.html');
+  };
+
+  renderHero(); renderBuyer(); renderSeller();
+  setView(location.hash === '#seller' ? 'seller' : 'buyer');
 </script>
 {% endblock %}
